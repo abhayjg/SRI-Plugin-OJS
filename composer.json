@@ -1,0 +1,30 @@
+{
+    "name": "scitekhub/sri-plugin",
+    "description": "OJS (Open Journal Systems) plugin to register Scitekhub Research Identifiers (SRI) automatically at publication time.",
+    "type": "project",
+    "license": "GPL-3.0-or-later",
+    "keywords": ["ojs", "pkp", "plugin", "sri", "persistent-identifier", "doi"],
+    "require": {
+        "php": ">=8.1"
+    },
+    "require-dev": [],
+    "autoload": {
+        "psr-4": {
+            "SRI\\Plugin\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "SRI\\Plugin\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "tests/run-tests.php",
+        "lint": "php scripts/lint.php",
+        "sync": "php scripts/sync-core.php",
+        "build": "php -d phar.readonly=0 build/package.php"
+    },
+    "config": {
+        "sort-packages": true
+    }
+}

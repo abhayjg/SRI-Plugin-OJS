@@ -1,0 +1,60 @@
+version: "3.9"
+
+# SRI-Plugin OJS sandbox: MariaDB + OJS 3.3 + OJS 3.5 for acceptance testing.
+
+services:
+  db:
+    image: mariadb:10.11
+    environment:
+      MARIADB_ROOT_PASSWORD: ojs_root
+      MARIADB_DATABASE: ojs
+    volumes:
+      - db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  ojs35:
+    build:
+      context: ./ojs
+      args:
+        OJS_VERSION: 3.5.0
+    image: sri-sandbox-ojs35
+    container_name: sri-ojs35
+    environment:
+      DB_HOST: db
+      DB_NAME: ojs35
+      DB_USER: ojs
+      DB_PASSWORD: ojs
+    ports:
+      - "8085:80"
+    volumes:
+      - ./ojs/plugins:/var/www/html/sri-plugins:ro
+    depends_on:
+      db:
+        condition: service_healthy
+
+  ojs33:
+    build:
+      context: ./ojs
+      args:
+        OJS_VERSION: 3.3.0-22
+    image: sri-sandbox-ojs33
+    container_name: sri-ojs33
+    environment:
+      DB_HOST: db
+      DB_NAME: ojs33
+      DB_USER: ojs
+      DB_PASSWORD: ojs
+    ports:
+      - "8083:80"
+    volumes:
+      - ./ojs/plugins:/var/www/html/sri-plugins:ro
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db-data:

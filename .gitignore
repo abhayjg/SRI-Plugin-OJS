@@ -1,0 +1,21 @@
+# Build artifacts
+/dist/
+/build/ojs-sandbox/*.tar.gz
+*.tar.gz
+!docs/**/*.tar.gz
+
+# PHP / Composer
+/vendor/
+composer.lock
+
+# OJS runtime cruft if the working tree is ever extracted into an OJS install
+/cache/
+*.log
+
+# OS / editor
+Thumbs.db
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*~
