@@ -17,8 +17,8 @@
 <version>
 	<application>sri</application>
 	<type>plugins.pubIds</type>
-	<release>1.0.0.0</release>
-	<date>2026-08-19</date>
+	<release>1.0.3.0</release>
+	<date>2026-08-20</date>
 	<lazy-load>1</lazy-load>
 	<class>SriPubIdPlugin</class>
 </version>

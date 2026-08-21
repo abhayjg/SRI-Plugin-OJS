@@ -136,10 +136,14 @@ function removeDir(string $dir): void
     foreach ($item as $file) {
         /** @var SplFileInfo $file */
         if ($file->isDir()) {
-            rmdir($file->getPathname());
+            @rmdir($file->getPathname());
         } else {
-            unlink($file->getPathname());
+            // Retry unlink on Windows where file handles may linger
+            for ($i = 0; $i < 3; $i++) {
+                if (@unlink($file->getPathname())) break;
+                usleep(100000);
+            }
         }
     }
-    rmdir($dir);
+    @rmdir($dir);
 }

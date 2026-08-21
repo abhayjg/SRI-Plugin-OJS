@@ -3,7 +3,108 @@
 All notable changes to SRI-Plugin are documented in this file. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased / 1.0.0] — 2026-08-19
+## [1.0.3] — 2026-08-20
+
+Fourth pass, found by inspection while preparing a user walkthrough of the settings form (not
+a reported crash) — same live-install session.
+
+### Fixed
+
+- **UX**: Saving plugin settings displayed the raw `{"status":true,"content":"",...}` JSON
+  response as a full page instead of closing the modal and showing a save confirmation.
+  `templates/settingsForm.tpl` had no `pkpHandler` binding at all — every other OJS settings
+  form (the shipped URN pubIds plugin, googleAnalytics, webFeed, and this plugin's own
+  `bulkForm.tpl`) binds one, but this file was missing it entirely, so clicking Save did a plain
+  browser form submission instead of an AJAX one. Fixed by binding
+  `$.pkp.controllers.form.AjaxFormHandler` (the same class OJS's own `PKPPubIdPlugin` reference
+  implementations use), matching the established pattern exactly.
+- **Same bug, different form**: `templates/bulkForm.tpl` (both adapters) bound the plain
+  `$.pkp.controllers.form.FormHandler` instead of `AjaxFormHandler`. `FormHandler` only handles
+  client-side validation events — it does not perform the AJAX submit or process the returned
+  JSONMessage at all, so "Register back catalog" would have hit the identical raw-JSON bug the
+  first time anyone used it. Not yet reported (untested), found while auditing the settings-save
+  fix for other instances of the same mistake. Fixed the same way.
+- **Deeper, related issue**: the per-article "Register now" / "Refresh status" / "Attach
+  existing SRI" controls in `templates/statusCard.tpl` had the same missing-binding problem, but
+  a `<script>`-tag fix alone would not have worked there. That card is injected into the OJS
+  3.4+ Vue-based publication identifiers form as raw HTML via `FieldHTML`'s `description` field
+  (see `addPublicationFormFields`), and Vue's `v-html` — like any plain `innerHTML` assignment —
+  never executes injected `<script>` tags; this is standard browser behavior, not an OJS quirk,
+  so no jQuery handler can ever bind there and every click is a plain navigation. Fixed
+  robustly instead of fighting the rendering context: `SriPubIdPlugin::manage()`'s dispatch for
+  these three verbs now goes through a new `objectAction()` wrapper that detects a real AJAX
+  call via the `X-Requested-With: XMLHttpRequest` header jQuery always sends. A genuine AJAX
+  caller gets the existing `JSONMessage` unchanged; a plain navigation performs the action,
+  raises a flash notification via `createTrivialNotification` (the same pattern OJS's own
+  `PKPPubIdPlugin::manage()` uses for a settings save), and redirects to
+  `workflow/access/{submissionId}` — the same URL pattern OJS core itself uses everywhere to
+  return a user to a submission's workflow page — so a fresh page load re-renders the status
+  card with the updated state instead of ever showing raw JSON. Not currently reachable through
+  any 3.3 UI element (the Vue form doesn't exist there), but applied to both adapters for
+  consistency and because `manage()`'s structure is otherwise identical.
+
+## [1.0.2] — 2026-08-20
+
+Third bug-fix pass from the same live-install testing session. Diagnosed with certainty this time
+by reading the actual OJS instance's PHP error log directly (`php_errors.log`), which also
+confirmed the 1.0.1 fixes below were genuinely effective — the errors they targeted stop
+appearing in the log after that install, replaced by this new one.
+
+### Fixed
+
+- **Critical**: `templates/settingsForm.tpl` (both adapters) had `{fbvFormSection}` (no `list`
+  attribute) wrapping the `sriIncludeDoi` checkbox `{fbvElement}`. OJS's `FormBuilderVocabulary`
+  renders every checkbox/radio `fbvElement` as an `<li>`-wrapped list item regardless of the
+  section's `list` setting, and deliberately self-checks for this: if the section's content
+  starts with `<li>` but `list="true"` wasn't declared, it throws `Exception('FBV: list
+  attribute not set on form section containing lists')` — an uncaught fatal, 500 on every
+  attempt to open the settings form. Every *other* checkbox/radio section in the same template
+  correctly declares `list="true"`; this one section was the sole miss. Confirmed directly
+  against the live OJS install's own `lib/pkp/classes/form/FormBuilderVocabulary.php` (the exact
+  code and line that throws), not inferred. Swept every template in both adapters for the same
+  pattern (`fbvFormSection` containing a checkbox/radio `fbvElement` without `list="true"`) —
+  this was the only occurrence. Fixed by adding `list="true"`.
+
+## [1.0.1] — 2026-08-20
+
+Bug-fix release, found during real install testing against a local OJS 3.4 instance. Version
+bumped from 1.0.0 (which never actually shipped/installed anywhere) specifically so OJS's plugin
+upload treats this as an upgrade and actually replaces the on-disk files — installing over an
+existing 1.0.0.0 with no version change is not guaranteed to do that.
+
+### Fixed
+
+- **Critical**: `addPublicationFormFields()` (the `Form::config::before` hook callback, in both
+  the 3.4/3.5 and 3.3 adapters) was typed to receive `array $args`, but pkp-lib fires this
+  specific hook via the modern `Hook::run()` convention (`Hook::run('Form::config::before',
+  [$this])`), which unpacks the args array into positional parameters — the callback actually
+  receives the `FormComponent` object directly as the 2nd parameter. This threw a `TypeError` on
+  every Vue-based form OJS rendered anywhere in the backend (settings, announcements, review
+  forms, context forms, etc.) while the plugin was enabled, which is what crashed the entire
+  admin/settings area (not just this plugin's own settings screen) after install. Root-caused by
+  reading pkp-lib's actual `Hook.php`/`FormComponent.php` source; the plugin's other two hooks
+  (`Publication::publish`, `ArticleHandler::view`) were verified to use the legacy `Hook::call()`
+  convention (args passed as a single array) and were already correct. Fixed by accepting the
+  form object directly instead of `array $args`.
+- `getResolvingURL()` used `ltrim($pubId, 'sri:')`, which strips a *character class*
+  (`s`/`r`/`i`/`:`) rather than the literal `sri:` prefix. Always safe in practice today (a valid
+  SRI always has a digit immediately after `sri:`), but fragile; replaced with an explicit
+  prefix check.
+- **Critical (3.4/3.5 adapter only)**: `templates/settingsForm.tpl` built the form's `action` URL
+  with `{url router=$smarty.const.ROUTE_COMPONENT ...}`, which requires `ROUTE_COMPONENT` to be
+  registered as a bare global PHP constant. In pkp-lib's namespaced core, that global alias is
+  only backfilled `if (!PKP_STRICT_MODE)`; when strict mode is on, referencing it throws an
+  uncaught `Error: Undefined constant "ROUTE_COMPONENT"` the instant the settings form template
+  renders — a 500 every time the plugin's own settings gear icon is opened, while the rest of
+  OJS (which doesn't hit this code path) works fine. Confirmed by diffing directly against
+  `plugins/pubIds/urn/templates/settingsForm.tpl` in the official `pkp/ojs` `stable-3_4_0`
+  source, which uses the namespaced class-constant form (`\PKP\core\PKPApplication::ROUTE_COMPONENT`)
+  precisely to avoid this. Fixed by switching to the same namespaced form in the 3.4/3.5 adapter.
+  The OJS 3.3 adapter's template is intentionally left unchanged — `ROUTE_COMPONENT` is an
+  unconditional legacy `define()` there (pre-namespace core), and `PKP\core\PKPApplication` does
+  not exist as a class on 3.3, so applying the same change there would break it instead.
+
+## [1.0.0] — 2026-08-19
 
 Initial release — implements Phase 2 / Strategy A of the OJS Integration & Metadata Standards
 plan (backed by the SRI-Backend API-key + metadata-hardening work from that plan's Phase 1).

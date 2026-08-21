@@ -11,7 +11,15 @@
 	<p>{translate key="plugins.pubIds.sri.manager.settings.description"}</p>
 </div>
 
-<form class="pkp_form" id="sriSettingsForm" method="post" action="{url router=$smarty.const.ROUTE_COMPONENT op="manage" category="pubIds" plugin=$sriPluginName verb="save"}">
+<script>
+	$(function() {ldelim}
+		// Attach the form handler so save is a proper AJAX submit — without
+		// this the browser does a plain navigation and dumps the raw
+		// JSONMessage response instead of closing the modal.
+		$('#sriSettingsForm').pkpHandler('$.pkp.controllers.form.AjaxFormHandler');
+	{rdelim});
+</script>
+<form class="pkp_form" id="sriSettingsForm" method="post" action="{url router=\PKP\core\PKPApplication::ROUTE_COMPONENT op="manage" category="pubIds" plugin=$sriPluginName verb="save"}">
 	{csrf}
 	{include file="common/formErrors.tpl"}
 
@@ -70,7 +78,7 @@
 	{/fbvFormArea}
 
 	{fbvFormArea id="sriMetadataFormArea" title="plugins.pubIds.sri.manager.settings.metadata"}
-		{fbvFormSection}
+		{fbvFormSection list="true"}
 			{fbvElement type="checkbox" label="plugins.pubIds.sri.manager.settings.sriIncludeDoi" id="sriIncludeDoi" maxlength="40" checked=$sriIncludeDoi|compare:true}
 			<p class="pkp_help">{translate key="plugins.pubIds.sri.manager.settings.sriIncludeDoi.description"}</p>
 		{/fbvFormSection}

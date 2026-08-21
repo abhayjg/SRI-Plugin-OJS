@@ -51,7 +51,7 @@ class SriPubIdPlugin extends PKPPubIdPlugin
     /** Public display string. The project/plugin name is SRI-Plugin. */
     public const DISPLAY_TYPE = 'SRI-Plugin';
 
-    public const VERSION = '1.0.0';
+    public const VERSION = '1.0.3';
 
     /** @var bool Ensures the shared SRI\Plugin\ core is loaded once. */
     private bool $_coreBootstrapped = false;
@@ -208,7 +208,8 @@ class SriPubIdPlugin extends PKPPubIdPlugin
     public function getResolvingURL($contextId, $pubId)
     {
         $origin = $this->getResolverOrigin($contextId);
-        $path = ltrim((string)$pubId, 'sri:');
+        $pubId = (string)$pubId;
+        $path = str_starts_with($pubId, 'sri:') ? substr($pubId, 4) : $pubId;
         return rtrim($origin, '/') . '/sri/' . $path;
     }
 
@@ -716,15 +717,26 @@ class SriPubIdPlugin extends PKPPubIdPlugin
      * Hook: Form::config::before — add a live status card to the publication
      * identifiers form (OJS 3.4+ backend editors).
      *
-     * @param string $hookName 'Form::config::before'
-     * @param array  $args     [&$form]
+     * Unlike Publication::publish and ArticleHandler::view below (both fired
+     * via the legacy Hook::call(), which passes $args as a single array),
+     * OJS core's FormComponent fires this specific hook via the modern
+     * Hook::run() convention — `Hook::run('Form::config::before', [$this])`
+     * — which unpacks the args array into positional parameters. The 2nd
+     * parameter here is therefore the FormComponent itself, never an array.
+     * Declaring it as `array $args` throws a TypeError the instant OJS tries
+     * to invoke this callback, on every Vue-based form OJS renders anywhere
+     * (verified directly against pkp-lib's Hook.php and FormComponent.php)
+     * — this is what crashed the whole admin/settings area, not just this
+     * plugin's own settings screen.
+     *
+     * @param string                               $hookName 'Form::config::before'
+     * @param \PKP\components\forms\FormComponent  $form
      *
      * @return bool
      */
-    public function addPublicationFormFields(string $hookName, array $args): bool
+    public function addPublicationFormFields(string $hookName, $form): bool
     {
         try {
-            $form = $args[0] ?? null;
             if (!$form) {
                 return Hook::CONTINUE;
             }
@@ -742,7 +754,6 @@ class SriPubIdPlugin extends PKPPubIdPlugin
                 return Hook::CONTINUE;
             }
 
-            $publicationId = $form->publication ? $form->publication->getId() : null;
             $submissionId = $form->publication ? $form->publication->getData('submissionId') : null;
             if (!$submissionId) {
                 return Hook::CONTINUE;
@@ -777,11 +788,11 @@ class SriPubIdPlugin extends PKPPubIdPlugin
 
         switch ($verb) {
             case 'registerNow':
-                return $this->csrfAction($csrfOk, fn () => $this->actionRegisterNow($request, $contextId));
+                return $this->objectAction($request, $csrfOk, fn () => $this->actionRegisterNow($request, $contextId));
             case 'refreshStatus':
-                return $this->csrfAction($csrfOk, fn () => $this->actionRefreshStatus($request, $contextId));
+                return $this->objectAction($request, $csrfOk, fn () => $this->actionRefreshStatus($request, $contextId));
             case 'attachExisting':
-                return $this->csrfAction($csrfOk, fn () => $this->actionAttachExisting($request, $contextId));
+                return $this->objectAction($request, $csrfOk, fn () => $this->actionAttachExisting($request, $contextId));
             case 'bulk':
                 return $this->csrfAction($csrfOk, fn () => $this->actionBulkScreen($request, $contextId));
             case 'bulkRun':
@@ -802,6 +813,83 @@ class SriPubIdPlugin extends PKPPubIdPlugin
             error_log('[SRI-Plugin] management action error: ' . $e->getMessage());
             return new JSONMessage(false, $e->getMessage());
         }
+    }
+
+    /**
+     * Wraps the three per-submission actions (registerNow / refreshStatus /
+     * attachExisting). Those controls are rendered in two different
+     * contexts: bound via jQuery in classic Smarty areas, and embedded as
+     * raw HTML inside the Vue-based publication identifiers form (via
+     * FieldHTML's description — see addPublicationFormFields). Vue's
+     * v-html — like any plain innerHTML assignment — never executes
+     * injected <script> tags; that is standard browser behavior, not an
+     * OJS quirk. So in the second context, no jQuery handler ever binds to
+     * these links/forms, and clicking one is a PLAIN navigation, not an
+     * XHR call — which would otherwise dump a raw JSONMessage to the
+     * screen instead of updating anything.
+     *
+     * jQuery always sends `X-Requested-With: XMLHttpRequest` on a real AJAX
+     * call, so that header reliably distinguishes the two cases: real AJAX
+     * callers keep getting the JSONMessage unchanged; a plain navigation
+     * performs the action, raises a flash notification (the same
+     * createTrivialNotification pattern OJS's own PKPPubIdPlugin::manage()
+     * uses for a settings save), and redirects back to the submission's
+     * workflow page, where a fresh page load re-renders the status card
+     * with the updated state.
+     */
+    private function objectAction($request, bool $csrfOk, \Closure $action)
+    {
+        $ajax = $this->isAjaxRequest();
+        $submissionId = (int)$request->getUserVar('submissionId');
+
+        if (!$csrfOk) {
+            if ($ajax) {
+                return new JSONMessage(false, __('plugins.pubIds.sri.error.csrf'));
+            }
+            $this->redirectAfterAction($request, $submissionId);
+            return;
+        }
+
+        try {
+            $result = $action();
+        } catch (\Throwable $e) {
+            error_log('[SRI-Plugin] management action error: ' . $e->getMessage());
+            $result = new JSONMessage(false, $e->getMessage());
+        }
+
+        if ($ajax) {
+            return $result;
+        }
+
+        $user = $request->getUser();
+        if ($user) {
+            (new NotificationManager())->createTrivialNotification(
+                $user->getId(),
+                $result->getStatus() ? Notification::NOTIFICATION_TYPE_SUCCESS : Notification::NOTIFICATION_TYPE_ERROR
+            );
+        }
+        $this->redirectAfterAction($request, $submissionId);
+    }
+
+    private function redirectAfterAction($request, int $submissionId): void
+    {
+        if ($submissionId > 0) {
+            $request->redirect(null, 'workflow', 'access', [$submissionId]);
+            return;
+        }
+        $request->redirect(null, 'index');
+    }
+
+    /**
+     * jQuery sets this header on every AJAX call; a plain browser
+     * navigation (link click, form submit with no bound handler) never
+     * does. This is the standard, framework-agnostic way to distinguish
+     * the two — not an OJS-specific mechanism.
+     */
+    private function isAjaxRequest(): bool
+    {
+        return isset($_SERVER['HTTP_X_REQUESTED_WITH'])
+            && strtolower((string)$_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
     }
 
     private function actionRegisterNow($request, int $contextId): JSONMessage

@@ -36,7 +36,7 @@ class SriPubIdPlugin extends PubIdPlugin
     /** @var string Public display type. The project/plugin name is SRI-Plugin. */
     public const DISPLAY_TYPE = 'SRI-Plugin';
 
-    public const VERSION = '1.0.0';
+    public const VERSION = '1.0.3';
 
     /** @var bool Core bootstrapped flag. */
     private $_coreBootstrapped = false;
@@ -136,7 +136,8 @@ class SriPubIdPlugin extends PubIdPlugin
     public function getResolvingURL($contextId, $pubId)
     {
         $origin = $this->getResolverOrigin($contextId);
-        $path = ltrim((string)$pubId, 'sri:');
+        $pubId = (string)$pubId;
+        $path = strpos($pubId, 'sri:') === 0 ? substr($pubId, 4) : $pubId;
         return rtrim($origin, '/') . '/sri/' . $path;
     }
 
@@ -532,10 +533,23 @@ class SriPubIdPlugin extends PubIdPlugin
         return false;
     }
 
-    public function addPublicationFormFields($hookName, $args)
+    /**
+     * Hook: Form::config::before.
+     *
+     * NOTE: current pkp-lib fires this via the modern Hook::run() convention
+     * (`Hook::run('Form::config::before', [$this])`), which unpacks the args
+     * array into positional parameters — so $form here is the FormComponent
+     * itself, never an array. Declaring the 2nd parameter as an array threw a
+     * TypeError on every Vue-based form OJS rendered (this crashed the whole
+     * admin/settings area, not just this plugin's settings screen) — see the
+     * identical fix and full explanation in plugin34/SriPubIdPlugin.php. The
+     * Vue FormComponent system does not exist on stock OJS 3.3, so this hook
+     * is not expected to fire there; fixed for correctness and consistency
+     * with the 3.4/3.5 adapter regardless.
+     */
+    public function addPublicationFormFields($hookName, $form)
     {
         try {
-            $form = $args[0] ?? null;
             if (!$form) {
                 return false;
             }
@@ -584,15 +598,15 @@ class SriPubIdPlugin extends PubIdPlugin
 
         switch ($verb) {
             case 'registerNow':
-                return $this->csrfAction($csrfOk, function () use ($request, $contextId) {
+                return $this->objectAction($request, $csrfOk, function () use ($request, $contextId) {
                     return $this->actionRegisterNow($request, $contextId);
                 });
             case 'refreshStatus':
-                return $this->csrfAction($csrfOk, function () use ($request, $contextId) {
+                return $this->objectAction($request, $csrfOk, function () use ($request, $contextId) {
                     return $this->actionRefreshStatus($request, $contextId);
                 });
             case 'attachExisting':
-                return $this->csrfAction($csrfOk, function () use ($request, $contextId) {
+                return $this->objectAction($request, $csrfOk, function () use ($request, $contextId) {
                     return $this->actionAttachExisting($request, $contextId);
                 });
             case 'bulk':
@@ -619,6 +633,70 @@ class SriPubIdPlugin extends PubIdPlugin
             error_log('[SRI-Plugin] management action error: ' . $e->getMessage());
             return new JSONMessage(false, $e->getMessage());
         }
+    }
+
+    /**
+     * Wraps the three per-submission actions (registerNow / refreshStatus /
+     * attachExisting). Not currently reachable through any 3.3 UI element
+     * (the Vue publication identifiers form these controls are embedded
+     * into via addPublicationFormFields doesn't exist on 3.3, and the
+     * legacy identifierStatus.tpl doesn't surface them either) -- kept
+     * aligned with the 3.4/3.5 adapter for consistency and in case a
+     * future template change surfaces them here too. See the 3.4/3.5
+     * adapter's objectAction() for the full reasoning: jQuery handlers
+     * bound via a <script> tag inside HTML injected through Vue's v-html
+     * never execute (standard browser/innerHTML behavior), so a plain
+     * navigation must be redirected instead of returned as a bare
+     * JSONMessage.
+     */
+    private function objectAction($request, $csrfOk, $action)
+    {
+        $ajax = $this->isAjaxRequest();
+        $submissionId = (int)$request->getUserVar('submissionId');
+
+        if (!$csrfOk) {
+            if ($ajax) {
+                return new JSONMessage(false, __('plugins.pubIds.sri.error.csrf'));
+            }
+            $this->redirectAfterAction($request, $submissionId);
+            return;
+        }
+
+        try {
+            $result = $action();
+        } catch (\Throwable $e) {
+            error_log('[SRI-Plugin] management action error: ' . $e->getMessage());
+            $result = new JSONMessage(false, $e->getMessage());
+        }
+
+        if ($ajax) {
+            return $result;
+        }
+
+        $user = $request->getUser();
+        if ($user) {
+            $notificationManager = new NotificationManager();
+            $notificationManager->createTrivialNotification(
+                $user->getId(),
+                $result->getStatus() ? NOTIFICATION_TYPE_SUCCESS : NOTIFICATION_TYPE_ERROR
+            );
+        }
+        $this->redirectAfterAction($request, $submissionId);
+    }
+
+    private function redirectAfterAction($request, $submissionId)
+    {
+        if ($submissionId > 0) {
+            $request->redirect(null, 'workflow', 'access', [$submissionId]);
+            return;
+        }
+        $request->redirect(null, 'index');
+    }
+
+    private function isAjaxRequest()
+    {
+        return isset($_SERVER['HTTP_X_REQUESTED_WITH'])
+            && strtolower((string)$_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
     }
 
     private function actionRegisterNow($request, $contextId)
