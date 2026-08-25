@@ -21,7 +21,7 @@
 	{csrf}
 	{fbvFormArea id="sriBulkFormArea" title="plugins.pubIds.sri.bulk.title"}
 		{fbvFormSection}
-			{fbvElement type="select" label="plugins.pubIds.sri.bulk.issue" id="issueId" from=$sriIssues required="true"}
+			{fbvElement type="select" label="plugins.pubIds.sri.bulk.issue" id="issueId" from=$sriIssues translate=false required="true"}
 		{/fbvFormSection}
 	{/fbvFormArea}
 	{fbvFormButtons submitText="plugins.pubIds.sri.bulk.submit"}

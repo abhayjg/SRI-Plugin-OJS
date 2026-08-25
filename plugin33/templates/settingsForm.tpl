@@ -11,12 +11,12 @@
 	<p>{translate key="plugins.pubIds.sri.manager.settings.description"}</p>
 </div>
 
+<script src="{$baseUrl}/plugins/pubIds/sri/js/SriSettingsFormHandler.js?v={$sriPluginVersion}"></script>
 <script>
 	$(function() {ldelim}
-		// Attach the form handler so save is a proper AJAX submit — without
-		// this the browser does a plain navigation and dumps the raw
-		// JSONMessage response instead of closing the modal.
-		$('#sriSettingsForm').pkpHandler('$.pkp.controllers.form.AjaxFormHandler');
+		// Attach the custom form handler that toggles the suffix pattern
+		// field's required state based on the selected suffix mode radio.
+		$('#sriSettingsForm').pkpHandler('$.pkp.plugins.pubIds.sri.js.SriSettingsFormHandler');
 	{rdelim});
 </script>
 <form class="pkp_form" id="sriSettingsForm" method="post" action="{url router=$smarty.const.ROUTE_COMPONENT op="manage" category="pubIds" plugin=$sriPluginName verb="save"}">
@@ -27,7 +27,7 @@
 		<p class="pkp_help">{translate key="plugins.pubIds.sri.manager.settings.sriObjects.description"}</p>
 		{fbvFormSection list="true"}
 			{fbvElement type="checkbox" label="plugins.pubIds.sri.manager.settings.enablePublicationSri" id="enablePublicationSri" maxlength="40" checked=$enablePublicationSri|compare:true}
-			{fbvElement type="checkbox" label="plugins.pubIds.sri.manager.settings.enableRepresentationSri" id="enableRepresentationSri" maxlength="40" checked=$enableRepresentationSri|compare:true}
+			{*** Galley-level registration is not yet implemented — checkbox hidden until the feature is built. ***}
 		{/fbvFormSection}
 	{/fbvFormArea}
 
@@ -47,6 +47,23 @@
 		{fbvFormSection}
 			{fbvElement type="text" id="sriResolverUrl" value=$sriResolverUrl label="plugins.pubIds.sri.manager.settings.sriResolverUrl" maxlength="255" size=$fbvStyles.size.LARGE}
 			<p class="pkp_help">{translate key="plugins.pubIds.sri.manager.settings.sriResolverUrl.description"}</p>
+		{/fbvFormSection}
+		{fbvFormSection}
+			<div
+				id="sriAccountStatus"
+				data-sri-account-status="1"
+				data-sri-account-status-url="{$sriAccountStatusUrl|escape}"
+				data-sri-account-status-unavailable="{$sriAccountStatusUnavailable|escape}"
+				data-sri-account-status-initial="{$sriAccountStatusInitial|escape}"
+				data-sri-account-status-loading="{$sriAccountStatusLoading|escape}"
+				data-sri-account-status-refresh-label="{$sriAccountStatusRefresh|escape}"
+				aria-live="polite"
+			>
+				<p class="pkp_help" data-sri-account-status-message>{translate key="plugins.pubIds.sri.manager.settings.status.initial"}</p>
+				<button type="button" class="pkpButton" data-sri-account-status-refresh="1">
+					{translate key="plugins.pubIds.sri.manager.settings.status.refresh"}
+				</button>
+			</div>
 		{/fbvFormSection}
 	{/fbvFormArea}
 

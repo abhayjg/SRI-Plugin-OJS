@@ -48,7 +48,16 @@ class SriMetadataBuilder
 
         $request = Application::getRequest();
         if ($request) {
-            $article->targetUrl = $request->url(null, 'article', 'view', $submission->getId());
+            $dispatcher = $request->getDispatcher();
+            $contextPath = $context ? $context->getPath() : null;
+            $article->targetUrl = $dispatcher->url(
+                $request,
+                ROUTE_PAGE,
+                $contextPath,
+                'article',
+                'view',
+                array($submission->getId())
+            );
         }
 
         $article->abstract = $publication ? trim((string)$this->localized($publication, 'abstract')) : '';

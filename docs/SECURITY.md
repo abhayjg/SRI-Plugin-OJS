@@ -46,6 +46,11 @@ installation it runs inside, and it must never exfiltrate or mishandle credentia
    attacker-controlled URLs itself. SSRF protection for registered `targetUrl` values is
    enforced on the SRI backend at registration time (Phase 1 of the plan).
 
+9. **Account status stays server-side.** The settings panel calls an OJS component action rather
+   than the SRI API directly. The action keeps the API key on the server, the backend status
+   projection is account-scoped and bounded to 100 prefixes, and the response is marked `no-store`
+   to prevent credential-scoped usage data from being cached by intermediaries.
+
 ## Reporting a vulnerability
 
 Please report security issues privately to the project maintainers rather than the public issue

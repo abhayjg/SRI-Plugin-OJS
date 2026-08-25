@@ -19,6 +19,9 @@ use PKP\form\Form;
 
 class SriSettingsForm extends Form
 {
+    /** Default production SRI API base URL (pre-filled for new journals). */
+    public const DEFAULT_BASE_URL = 'https://api-sri.scitekhub.com/api/v1';
+
     /** @var int Context (journal) id. */
     private int $_contextId;
 
@@ -35,11 +38,14 @@ class SriSettingsForm extends Form
         $this->addCheck(new \PKP\form\validation\FormValidatorPost($this));
         $this->addCheck(new \PKP\form\validation\FormValidatorCSRF($this));
 
-        $this->addCheck(new \PKP\form\validation\FormValidatorUrl(
+        // Use a permissive regex instead of OJS's built-in URL validator, which
+        // rejects localhost and private IPs via jQuery Validate's client-side rules.
+        $this->addCheck(new \PKP\form\validation\FormValidatorRegExp(
             $this,
             'sriBaseUrl',
             'required',
-            'plugins.pubIds.sri.manager.settings.sriBaseUrlRequired'
+            'plugins.pubIds.sri.manager.settings.sriBaseUrlRequired',
+            '/^https?:\/\/[a-zA-Z0-9.\-]+(:\d+)?(\/.*)?$/'
         ));
         $this->addCheck(new \PKP\form\validation\FormValidator(
             $this,
@@ -92,6 +98,24 @@ class SriSettingsForm extends Form
         $this->setData('sriClearLinkAction', $plugin->getClearAllLinkAction($this->_contextId));
         $this->setData('sriBulkLinkAction', $plugin->getBulkLinkAction($this->_contextId));
         $this->setData('sriPluginName', $plugin->getName());
+        $this->setData('sriPluginVersion', $plugin::VERSION);
+        $this->setData('sriAccountStatusUrl', $plugin->getAccountStatusUrl());
+        $this->setData(
+            'sriAccountStatusUnavailable',
+            __('plugins.pubIds.sri.manager.settings.status.unavailable')
+        );
+        $this->setData(
+            'sriAccountStatusInitial',
+            __('plugins.pubIds.sri.manager.settings.status.initial')
+        );
+        $this->setData(
+            'sriAccountStatusLoading',
+            __('plugins.pubIds.sri.manager.settings.status.loading')
+        );
+        $this->setData(
+            'sriAccountStatusRefresh',
+            __('plugins.pubIds.sri.manager.settings.status.refresh')
+        );
     }
 
     //
@@ -108,7 +132,7 @@ class SriSettingsForm extends Form
 
         $this->setData('enablePublicationSri', (bool)$plugin->setting($contextId, 'enablePublicationSri', true));
         $this->setData('enableRepresentationSri', (bool)$plugin->setting($contextId, 'enableRepresentationSri', false));
-        $this->setData('sriBaseUrl', (string)$plugin->setting($contextId, 'sriBaseUrl', ''));
+        $this->setData('sriBaseUrl', (string)$plugin->setting($contextId, 'sriBaseUrl', '') ?: self::DEFAULT_BASE_URL);
         $this->setData('sriApiKey', (string)$plugin->setting($contextId, 'sriApiKey', ''));
         $this->setData('sriPrefix', (string)$plugin->setting($contextId, 'sriPrefix', ''));
         $this->setData('sriResolverUrl', (string)$plugin->setting($contextId, 'sriResolverUrl', ''));

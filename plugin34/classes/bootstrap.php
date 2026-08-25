@@ -15,6 +15,9 @@
 declare(strict_types=1);
 
 require_once(__DIR__ . '/core/autoload.php');
+if (file_exists(__DIR__ . '/SriMetadataBuilder.php')) {
+    require_once(__DIR__ . '/SriMetadataBuilder.php');
+}
 
 // The autoload.php in classes/core/ registers the SRI\Plugin\ PSR-4 autoloader
 // pointing at its own directory. Nothing further is required here.

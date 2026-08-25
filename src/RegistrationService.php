@@ -8,6 +8,7 @@
  *   - register():          POST /api/v1/register   (single article)
  *   - registerWithRetry(): register + automatic 409 disambiguation
  *   - checkStatus():       GET  /api/v1/metadata/{fullSri}
+ *   - checkAccountStatus(): GET  /api/v1/account/status
  *   - updateMetadata():    PATCH /api/v1/metadata/{fullSri}  (re-deposit on edit)
  *   - submitBulk():        POST /api/v1/register/bulk        (multipart CSV)
  *   - getBulkJobStatus():  GET  /api/v1/bulk-jobs/{id}
@@ -20,6 +21,8 @@ namespace SRI\Plugin;
 
 final class RegistrationService
 {
+    private const MAX_ACCOUNT_STATUS_PREFIXES = 100;
+
     private ApiClient $api;
 
     private MetadataMapper $mapper;
@@ -127,6 +130,78 @@ final class RegistrationService
             'fullSri' => (string)($data['fullSri'] ?? $fullSri),
             'httpStatus' => $response['httpStatus'],
             'data' => is_array($data) ? $data : [],
+        ];
+    }
+
+    /**
+     * Read the authenticated account's membership, quota, and prefix status.
+     *
+     * The response is normalized to an allow-list before it reaches an OJS
+     * template. This keeps malformed or unexpectedly extended API responses
+     * from becoming a data-disclosure or rendering concern.
+     *
+     * @return array{success: bool, httpStatus: int, accountStatus?: string,
+     *              partnerStatus?: string, membership?: array, quota?: array,
+     *              prefixQuota?: array, autoApproveSris?: bool, prefixes?: array,
+     *              prefixesTruncated?: bool, blockedReason?: ?string,
+     *              code?: string, message?: string, reason?: array}
+     */
+    public function checkAccountStatus(): array
+    {
+        $response = $this->api->request('GET', '/account/status');
+        if (!$response['ok']) {
+            $resolved = $this->statuses->resolveError(
+                $response['httpStatus'],
+                $this->errorCode($response),
+                $response['error'] ?? ''
+            );
+            return $this->failure($response, $resolved);
+        }
+
+        $data = is_array($response['body']) ? ($response['body']['data'] ?? null) : null;
+        if (!is_array($data)) {
+            $resolved = $this->statuses->resolveError(
+                502,
+                'INVALID_RESPONSE',
+                'The SRI API returned an invalid account status response.'
+            );
+            return [
+                'success' => false,
+                'state' => StatusResolver::STATE_FAILED,
+                'httpStatus' => $response['httpStatus'],
+                'code' => 'INVALID_RESPONSE',
+                'message' => 'The SRI API returned an invalid account status response.',
+                'reason' => $resolved,
+            ];
+        }
+
+        $membership = is_array($data['membership'] ?? null) ? $data['membership'] : [];
+        $quota = is_array($data['quota'] ?? null) ? $data['quota'] : [];
+        $prefixQuota = is_array($data['prefixQuota'] ?? null) ? $data['prefixQuota'] : [];
+
+        return [
+            'success' => true,
+            'httpStatus' => $response['httpStatus'],
+            'accountStatus' => $this->statusValue($data['accountStatus'] ?? null),
+            'partnerStatus' => $this->statusValue($data['partnerStatus'] ?? null),
+            'membership' => [
+                'expiresAt' => $this->dateValue($membership['expiresAt'] ?? null),
+                'daysRemaining' => $this->nullableNonNegativeInt($membership['daysRemaining'] ?? null),
+            ],
+            'quota' => [
+                'sriQuota' => $this->nonNegativeInt($quota['sriQuota'] ?? 0),
+                'srisUsed' => $this->nonNegativeInt($quota['srisUsed'] ?? 0),
+                'remaining' => $this->nonNegativeInt($quota['remaining'] ?? 0),
+            ],
+            'prefixQuota' => [
+                'assigned' => $this->nonNegativeInt($prefixQuota['assigned'] ?? 0),
+                'used' => $this->nonNegativeInt($prefixQuota['used'] ?? 0),
+                'remaining' => $this->nonNegativeInt($prefixQuota['remaining'] ?? 0),
+            ],
+            'autoApproveSris' => ($data['autoApproveSris'] ?? false) === true,
+            'prefixes' => $this->prefixValues($data['prefixes'] ?? []),
+            'prefixesTruncated' => ($data['prefixesTruncated'] ?? false) === true,
+            'blockedReason' => $this->blockReason($data['blockedReason'] ?? null),
         ];
     }
 
@@ -263,5 +338,108 @@ final class RegistrationService
             return (string)$body['code'];
         }
         return '';
+    }
+
+    private function statusValue(mixed $value): string
+    {
+        if (!is_string($value)) {
+            return 'UNKNOWN';
+        }
+        $value = strtoupper(trim($value));
+        return preg_match('/^[A-Z0-9_]{1,32}$/', $value) ? $value : 'UNKNOWN';
+    }
+
+    private function dateValue(mixed $value): ?string
+    {
+        if (!is_string($value) || trim($value) === '') {
+            return null;
+        }
+        try {
+            return (new \DateTimeImmutable($value))->format(\DateTimeInterface::ATOM);
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    private function nonNegativeInt(mixed $value): int
+    {
+        if (is_int($value)) {
+            return max(0, $value);
+        }
+        if (is_string($value) && preg_match('/^\d+$/', $value)) {
+            return (int)$value;
+        }
+        return 0;
+    }
+
+    private function nullableNonNegativeInt(mixed $value): ?int
+    {
+        if ($value === null) {
+            return null;
+        }
+        return $this->nonNegativeInt($value);
+    }
+
+    /**
+     * @param mixed $prefixes
+     * @return array<int, array{prefix: int, status: string, autoApprove: bool, journalName: ?string}>
+     */
+    private function prefixValues(mixed $prefixes): array
+    {
+        if (!is_array($prefixes)) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach ($prefixes as $prefix) {
+            if (count($normalized) >= self::MAX_ACCOUNT_STATUS_PREFIXES) {
+                break;
+            }
+            if (!is_array($prefix)) {
+                continue;
+            }
+            $prefixValue = $prefix['prefix'] ?? null;
+            if (is_string($prefixValue) && !preg_match('/^\d{1,8}$/', $prefixValue)) {
+                continue;
+            }
+            if (!is_int($prefixValue) && !is_string($prefixValue)) {
+                continue;
+            }
+            $prefixNumber = (int)$prefixValue;
+            if ($prefixNumber <= 0) {
+                continue;
+            }
+            $journalName = $prefix['journalName'] ?? null;
+            $normalized[] = [
+                'prefix' => $prefixNumber,
+                'status' => $this->statusValue($prefix['status'] ?? null),
+                'autoApprove' => ($prefix['autoApprove'] ?? false) === true,
+                'journalName' => is_string($journalName) ? substr($journalName, 0, 200) : null,
+            ];
+        }
+        return $normalized;
+    }
+
+    private function blockReason(mixed $value): ?string
+    {
+        if (!is_string($value)) {
+            return null;
+        }
+        $allowed = [
+            'ACCOUNT_NOT_ACTIVE',
+            'ACCOUNT_SUSPENDED',
+            'ACCOUNT_CLOSED',
+            'ACCOUNT_EXPIRED',
+            'NO_EXPIRY_SET',
+            'NO_QUOTA',
+            'QUOTA_EXCEEDED',
+            'NO_PREFIX_QUOTA',
+            'PREFIX_QUOTA_EXCEEDED',
+            'PREFIX_NOT_FOUND',
+            'PREFIX_INACTIVE',
+            'PREFIX_NOT_OWNED',
+        ];
+        $reason = strtoupper(trim($value));
+        return in_array($reason, $allowed, true) ? $reason : null;
     }
 }
