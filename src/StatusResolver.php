@@ -54,7 +54,7 @@ final class StatusResolver
         $auth = ['API_KEY_REQUIRED', 'API_KEY_INVALID', 'UNAUTHORIZED', 'TOKEN_EXPIRED', 'INVALID_TOKEN', 'FORBIDDEN'];
         $suspended = ['ACCOUNT_SUSPENDED', 'ACCOUNT_CLOSED', 'ACCOUNT_NOT_ACTIVE'];
         $expired = ['ACCOUNT_EXPIRED', 'NO_EXPIRY_SET'];
-        $quota = ['NO_QUOTA', 'QUOTA_EXCEEDED', 'PREFIX_QUOTA_EXCEEDED', 'SRI_QUOTA_EXCEEDED'];
+        $quota = ['NO_QUOTA', 'QUOTA_EXCEEDED', 'PREFIX_QUOTA_EXCEEDED', 'NO_PREFIX_QUOTA', 'SRI_QUOTA_EXCEEDED'];
         $prefix = ['PREFIX_NOT_FOUND', 'PREFIX_INACTIVE', 'PREFIX_NOT_OWNED'];
         $notFound = ['SRI_NOT_FOUND', 'NOT_FOUND', 'JOB_NOT_FOUND'];
         $duplicate = ['CONFLICT', 'DUPLICATE_SUFFIX', 'SUFFIX_CONFLICT'];
@@ -94,7 +94,7 @@ final class StatusResolver
                 return ['key' => 'plugins.pubIds.sri.status.failed.duplicate', 'params' => [], 'message' => 'Duplicate SRI suffix.'];
             case 400:
             case 422:
-                return ['key' => 'plugins.pubIds.sri.status.failed.validation', 'params' => [], 'message' => $message !== '' ? $message : 'The SRI API rejected the registration metadata.'];
+                return ['key' => 'plugins.pubIds.sri.status.failed.validation', 'params' => ['message' => $message], 'message' => $message !== '' ? $message : 'The SRI API rejected the registration metadata.'];
             case 429:
                 return ['key' => 'plugins.pubIds.sri.status.failed.ratelimit', 'params' => [], 'message' => 'Too many requests — try again shortly.'];
             case 500:
@@ -103,7 +103,7 @@ final class StatusResolver
             case 504:
                 return ['key' => 'plugins.pubIds.sri.status.failed.server', 'params' => [], 'message' => 'SRI API server error — try again shortly.'];
             default:
-                return ['key' => 'plugins.pubIds.sri.status.failed.unknown', 'params' => [], 'message' => $message !== '' ? $message : 'SRI registration failed.'];
+                return ['key' => 'plugins.pubIds.sri.status.failed.unknown', 'params' => ['message' => $message], 'message' => $message !== '' ? $message : 'SRI registration failed.'];
         }
     }
 
@@ -114,6 +114,6 @@ final class StatusResolver
      */
     public function resolveTransportError(string $message): array
     {
-        return ['key' => 'plugins.pubIds.sri.status.failed.network', 'params' => [], 'message' => $message !== '' ? $message : 'Could not reach the SRI API.'];
+        return ['key' => 'plugins.pubIds.sri.status.failed.network', 'params' => ['message' => $message], 'message' => $message !== '' ? $message : 'Could not reach the SRI API.'];
     }
 }

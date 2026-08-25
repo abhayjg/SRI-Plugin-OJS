@@ -12,10 +12,11 @@
  * This is the OJS 3.4/3.5 variant (namespaced objects, Repo facade).
  */
 
-namespace APP\plugins\pubIds\sri;
+namespace APP\plugins\pubIds\sri\classes;
 
 use APP\core\Application;
 use APP\facades\Repo;
+use APP\plugins\pubIds\sri\SriPubIdPlugin;
 use APP\submission\Submission;
 use SRI\Plugin\ArticleData;
 use SRI\Plugin\SuffixGenerator;
@@ -56,7 +57,16 @@ final class SriMetadataBuilder
 
         $request = Application::get()->getRequest();
         if ($request) {
-            $article->targetUrl = $request->url(null, 'article', 'view', [$submission->getId()]);
+            $dispatcher = $request->getDispatcher();
+            $contextPath = $context ? $context->getPath() : null;
+            $article->targetUrl = $dispatcher->url(
+                $request,
+                \PKP\core\PKPApplication::ROUTE_PAGE,
+                $contextPath,
+                'article',
+                'view',
+                [$submission->getId()]
+            );
         }
 
         $article->abstract = $publication ? trim((string)$this->localized($publication, 'abstract')) : '';

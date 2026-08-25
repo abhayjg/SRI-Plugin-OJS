@@ -36,7 +36,7 @@ class SriPubIdPlugin extends PubIdPlugin
     /** @var string Public display type. The project/plugin name is SRI-Plugin. */
     public const DISPLAY_TYPE = 'SRI-Plugin';
 
-    public const VERSION = '1.0.3';
+    public const VERSION = '1.2.0';
 
     /** @var bool Core bootstrapped flag. */
     private $_coreBootstrapped = false;
@@ -185,6 +185,7 @@ class SriPubIdPlugin extends PubIdPlugin
     public function getSuffixPatternsFieldNames()
     {
         return [
+            'Issue' => 'sriIssueSuffixPattern',
             'Publication' => 'sriPublicationSuffixPattern',
             'Representation' => 'sriRepresentationSuffixPattern',
         ];
@@ -198,8 +199,10 @@ class SriPubIdPlugin extends PubIdPlugin
     public function getPubObjectTypes()
     {
         return [
+            'Issue' => 'Issue',
             'Publication' => '\APP\publication\Publication',
             'Representation' => '\PKP\submission\Representation',
+            'SubmissionFile' => 'SubmissionFile',
         ];
     }
 
@@ -208,7 +211,16 @@ class SriPubIdPlugin extends PubIdPlugin
         if ($pubObjectType === 'Publication') {
             return (bool)$this->setting($contextId, 'enablePublicationSri', true);
         }
-        return (bool)$this->setting($contextId, 'enableRepresentationSri', false);
+        if ($pubObjectType === 'Representation') {
+            return (bool)$this->setting($contextId, 'enableRepresentationSri', false);
+        }
+        if ($pubObjectType === 'Issue') {
+            return (bool)$this->setting($contextId, 'enableIssueSri', false);
+        }
+        if ($pubObjectType === 'SubmissionFile') {
+            return (bool)$this->setting($contextId, 'enableSubmissionFileSri', false);
+        }
+        return false;
     }
 
     public function getNotUniqueErrorMsg()
@@ -246,7 +258,7 @@ class SriPubIdPlugin extends PubIdPlugin
                 $request->getSession(),
                 __('plugins.pubIds.sri.editor.clearObjectsSri.confirm'),
                 __('common.delete'),
-                $request->url(null, null, 'manage', null, $actionArgs),
+                $this->componentUrl($request, 'clearPubId', $actionArgs),
                 'modal_delete'
             ),
             __('plugins.pubIds.sri.editor.clearObjectsSri'),
@@ -265,11 +277,7 @@ class SriPubIdPlugin extends PubIdPlugin
                 $request->getSession(),
                 __('plugins.pubIds.sri.manager.settings.clearAll.confirm'),
                 __('common.delete'),
-                $request->url(null, null, 'manage', null, [
-                    'verb' => 'clearPubIds',
-                    'category' => 'pubIds',
-                    'plugin' => $this->getName(),
-                ]),
+                $this->componentUrl($request, 'clearPubIds'),
                 'modal_delete'
             ),
             __('plugins.pubIds.sri.manager.settings.clearAll'),
@@ -283,11 +291,7 @@ class SriPubIdPlugin extends PubIdPlugin
         return new LinkAction(
             'sriBulk',
             new AjaxModal(
-                $request->url(null, null, 'manage', null, [
-                    'verb' => 'bulk',
-                    'category' => 'pubIds',
-                    'plugin' => $this->getName(),
-                ]),
+                $this->componentUrl($request, 'bulk'),
                 __('plugins.pubIds.sri.bulk.title')
             ),
             __('plugins.pubIds.sri.bulk.title')
@@ -297,6 +301,36 @@ class SriPubIdPlugin extends PubIdPlugin
     //
     // Settings / services --------------------------------------------------------
     //
+
+    
+    /**
+     * Build a URL for this plugin's component-router manage action.
+     */
+    private function componentUrl($request, $verb, array $extraParams = array())
+    {
+        $dispatcher = $request->getDispatcher();
+        return $dispatcher->url(
+            $request,
+            ROUTE_COMPONENT,
+            null,
+            'grid.settings.plugins.SettingsPluginGridHandler',
+            'manage',
+            null,
+            array_merge($extraParams, array(
+                'verb' => $verb,
+                'category' => 'pubIds',
+                'plugin' => $this->getName(),
+            ))
+        );
+    }
+
+    public function getAccountStatusUrl()
+    {
+        $request = Application::getRequest();
+        $session = $request->getSession();
+        $csrf = $session && method_exists($session, 'getCSRFToken') ? $session->getCSRFToken() : null;
+        return $this->componentUrl($request, 'accountStatus', array('csrfToken' => $csrf));
+    }
 
     public function setting($contextId, $name, $default = null)
     {
@@ -367,6 +401,10 @@ class SriPubIdPlugin extends PubIdPlugin
     public function registerSubmission($contextId, $submissionId, $retryOnConflict = true)
     {
         try {
+            if (!$this->isObjectTypeEnabled('Publication', $contextId)) {
+                throw new \Exception('Publication-level SRI registration is disabled');
+            }
+
             $submission = $this->getSubmission($submissionId);
             if (!$submission) {
                 throw new \Exception('Submission not found');
@@ -610,9 +648,9 @@ class SriPubIdPlugin extends PubIdPlugin
                     return $this->actionAttachExisting($request, $contextId);
                 });
             case 'bulk':
-                return $this->csrfAction($csrfOk, function () use ($request, $contextId) {
-                    return $this->actionBulkScreen($request, $contextId);
-                });
+                return $this->actionBulkScreen($request, $contextId);
+            case 'accountStatus':
+                return $this->actionAccountStatus($request, $contextId);
             case 'bulkRun':
                 return $this->csrfAction($csrfOk, function () use ($request, $contextId) {
                     return $this->actionBulkRun($request, $contextId);
@@ -774,6 +812,10 @@ class SriPubIdPlugin extends PubIdPlugin
 
     private function actionBulkRun($request, $contextId)
     {
+        if (!$this->isObjectTypeEnabled('Publication', $contextId)) {
+            return new JSONMessage(false, __('plugins.pubIds.sri.manager.settings.sriPublicationDisabled'));
+        }
+
         $issueId = (int)$request->getUserVar('issueId');
         $submissionIds = $this->submissionIdsForIssue($contextId, $issueId);
 
@@ -839,13 +881,13 @@ class SriPubIdPlugin extends PubIdPlugin
             'sriStateLabel' => __($presentation['labelKey']),
             'sriFullSri' => $presentation['fullSri'],
             'sriResolvingUrl' => $presentation['fullSri'] !== '' ? $this->getResolvingURL($contextId, $presentation['fullSri']) : '',
-            'sriReason' => $presentation['reason'] !== '' ? __($presentation['reason']) : '',
+            'sriReason' => $presentation['reason'] !== '' ? __($presentation['reason'], $status['reasonParams'] ?? array()) : '',
             'sriUpdatedAt' => $status['updatedAt'] ?? '',
             'sriSubmissionId' => $submissionId,
             'sriActionSuffix' => $this->computeSuffixForStatus($contextId, $submissionId),
-            'sriActionRegisterUrl' => $request->url(null, null, 'manage', null, ['verb' => 'registerNow', 'category' => 'pubIds', 'plugin' => $this->getName(), 'submissionId' => $submissionId, 'csrfToken' => $csrf]),
-            'sriActionRefreshUrl' => $request->url(null, null, 'manage', null, ['verb' => 'refreshStatus', 'category' => 'pubIds', 'plugin' => $this->getName(), 'submissionId' => $submissionId, 'csrfToken' => $csrf]),
-            'sriActionAttachUrl' => $request->url(null, null, 'manage', null, ['verb' => 'attachExisting', 'category' => 'pubIds', 'plugin' => $this->getName(), 'submissionId' => $submissionId, 'csrfToken' => $csrf]),
+            'sriActionRegisterUrl' => $this->componentUrl($request, 'registerNow', array('submissionId' => $submissionId, 'csrfToken' => $csrf)),
+            'sriActionRefreshUrl' => $this->componentUrl($request, 'refreshStatus', array('submissionId' => $submissionId, 'csrfToken' => $csrf)),
+            'sriActionAttachUrl' => $this->componentUrl($request, 'attachExisting', array('submissionId' => $submissionId, 'csrfToken' => $csrf)),
         ]);
 
         return $templateMgr->fetch($this->getTemplateResource('statusCard.tpl'));
@@ -887,11 +929,7 @@ class SriPubIdPlugin extends PubIdPlugin
 
     private function manageUrl($request, $verb)
     {
-        return $request->url(null, null, 'manage', null, [
-            'verb' => $verb,
-            'category' => 'pubIds',
-            'plugin' => $this->getName(),
-        ]);
+        return $this->componentUrl($request, $verb);
     }
 
     private function metadataBuilder()
@@ -911,17 +949,88 @@ class SriPubIdPlugin extends PubIdPlugin
         $issueDao = DAORegistry::getDAO('IssueDAO');
         $options = [];
         foreach (iterator_to_array($issueDao->getByContextId($contextId, false)) as $issue) {
-            $label = trim(
-                (string)$issue->getVolume()
-                . ($issue->getNumber() ? '(' . (string)$issue->getNumber() . ')' : '')
-                . ($issue->getYear() ? ' — ' . (string)$issue->getYear() : '')
-            );
-            $options[$issue->getId()] = $label !== '' ? $label : (string)$issue->getId();
+            $label = method_exists($issue, 'getIssueIdentification') ? $issue->getIssueIdentification() : '';
+            if ($label === '') {
+                $label = trim(
+                    (string)$issue->getVolume()
+                    . ($issue->getNumber() ? ' (' . (string)$issue->getNumber() . ')' : '')
+                    . ($issue->getYear() ? ' — ' . (string)$issue->getYear() : '')
+                );
+            }
+            $options[$issue->getId()] = $label !== '' ? $label : ('Issue #' . $issue->getId());
         }
         return $options;
     }
 
-    private function submissionIdsForIssue($contextId, $issueId)
+    public function getIssueArticlesData($issue)
+    {
+        $contextId = (int)$issue->getJournalId();
+        $issueId = (int)$issue->getId();
+        $submissionIds = $this->submissionIdsForIssue($contextId, $issueId);
+        $articles = [];
+        foreach ($submissionIds as $submissionId) {
+            $submission = $this->getSubmission($submissionId);
+            if (!$submission) {
+                continue;
+            }
+            $publication = $submission->getCurrentPublication();
+            $storedSri = $publication ? $this->getPubId($publication) : null;
+            $status = $this->readStatus($contextId, $submissionId);
+            $presenter = new StatePresenter();
+            $presentation = $presenter->present($storedSri, $status);
+            $title = $publication ? $publication->getLocalizedTitle() : $submission->getLocalizedTitle();
+            $articles[] = [
+                'submissionId' => $submissionId,
+                'title' => $title ?: __('common.untitled'),
+                'fullSri' => $presentation['fullSri'],
+                'displaySri' => $presentation['displaySri'] ?? CheckCharacter::cleanSri($presentation['fullSri']),
+                'resolvingUrl' => $presentation['fullSri'] !== '' ? $this->getResolvingURL($contextId, $presentation['fullSri']) : '',
+                'state' => $presentation['state'],
+                'stateLabel' => __($presentation['labelKey']),
+            ];
+        }
+        return $articles;
+    }
+
+    public function clearIssueObjectsPubIds($issue)
+    {
+        $publicationPubIdEnabled = $this->isObjectTypeEnabled('Publication', $issue->getJournalId());
+        $representationPubIdEnabled = $this->isObjectTypeEnabled('Representation', $issue->getJournalId());
+        if (!$publicationPubIdEnabled && !$representationPubIdEnabled) {
+            return false;
+        }
+
+        $pubIdType = $this->getPubIdType();
+        $submissionIds = $this->submissionIdsForIssue((int)$issue->getJournalId(), (int)$issue->getId());
+
+        foreach ($submissionIds as $submissionId) {
+            $submission = $this->getSubmission($submissionId);
+            if (!$submission) {
+                continue;
+            }
+            if ($publicationPubIdEnabled) {
+                foreach ($submission->getData('publications') as $publication) {
+                    $publicationDao = DAORegistry::getDAO('PublicationDAO');
+                    if ($publicationDao && method_exists($publicationDao, 'deletePubId')) {
+                        $publicationDao->deletePubId($publication->getId(), $pubIdType);
+                    }
+                }
+                $this->clearStatus((int)$issue->getJournalId(), (int)$submissionId);
+            }
+            if ($representationPubIdEnabled) {
+                foreach ($submission->getData('publications') as $publication) {
+                    $representationDao = Application::getRepresentationDAO();
+                    $representations = $representationDao->getByPublicationId($publication->getId());
+                    foreach ($representations as $representation) {
+                        $representationDao->deletePubId($representation->getId(), $pubIdType);
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    public function submissionIdsForIssue($contextId, $issueId)
     {
         $submissionDao = DAORegistry::getDAO('SubmissionDAO');
         $ids = [];

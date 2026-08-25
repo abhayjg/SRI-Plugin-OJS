@@ -142,6 +142,51 @@ msgstr "SRI API connection"
 msgid "plugins.pubIds.sri.manager.settings.connection.description"
 msgstr "The SRI API base URL (ending in /api/v1), an API key scoped to identifier:register, and your numeric SRI prefix."
 
+msgid "plugins.pubIds.sri.manager.settings.status.initial"
+msgstr "Save the settings or refresh to check the SRI account connection."
+
+msgid "plugins.pubIds.sri.manager.settings.status.loading"
+msgstr "Checking SRI account status..."
+
+msgid "plugins.pubIds.sri.manager.settings.status.unavailable"
+msgstr "Unable to read SRI account status. Check the API URL, API key, and key scope."
+
+msgid "plugins.pubIds.sri.manager.settings.status.account"
+msgstr "Account status: {$status}"
+
+msgid "plugins.pubIds.sri.manager.settings.status.partner"
+msgstr "Partner status: {$status}"
+
+msgid "plugins.pubIds.sri.manager.settings.status.blocked"
+msgstr "Registration currently blocked: {$reason}"
+
+msgid "plugins.pubIds.sri.manager.settings.status.membership"
+msgstr "Membership expires: {$when} ({$days} day(s) remaining)"
+
+msgid "plugins.pubIds.sri.manager.settings.status.membershipNone"
+msgstr "Membership expiry: not set"
+
+msgid "plugins.pubIds.sri.manager.settings.status.quota"
+msgstr "SRI quota: {$used} / {$quota} used ({$remaining} remaining)"
+
+msgid "plugins.pubIds.sri.manager.settings.status.prefixQuota"
+msgstr "Prefix quota: {$used} / {$assigned} used ({$remaining} remaining)"
+
+msgid "plugins.pubIds.sri.manager.settings.status.prefixMissing"
+msgstr "Configured prefix {$prefix} was not found in this account."
+
+msgid "plugins.pubIds.sri.manager.settings.status.prefix"
+msgstr "Prefix {$prefix}: {$status}"
+
+msgid "plugins.pubIds.sri.manager.settings.status.autoApprove"
+msgstr "auto-approval enabled"
+
+msgid "plugins.pubIds.sri.manager.settings.status.prefixesTruncated"
+msgstr "Only the first 100 prefixes are shown."
+
+msgid "plugins.pubIds.sri.manager.settings.status.refresh"
+msgstr "Refresh account status"
+
 msgid "plugins.pubIds.sri.manager.settings.sriBaseUrl"
 msgstr "SRI API base URL"
 
@@ -253,6 +298,9 @@ msgstr "Remove every locally stored SRI-Plugin identifier?"
 msgid "plugins.pubIds.sri.error.csrf"
 msgstr "Your session token is invalid or expired. Reload the page and try again."
 
+msgid "plugins.pubIds.sri.error.action"
+msgstr "The SRI action could not be completed. Reload the page and try again."
+
 msgid "plugins.pubIds.sri.error.missingSubmission"
 msgstr "No submission was specified."
 
@@ -279,3 +327,21 @@ msgstr "The bulk registration request was rejected by the SRI API."
 
 msgid "plugins.pubIds.sri.bulk.submitted"
 msgstr "Submitted {$count} articles to the SRI bulk registration job ({$jobId}); {$skipped} already had an SRI and were skipped."
+
+msgid "plugins.pubIds.sri.issue.articlesTitle"
+msgstr "Articles in this Issue"
+
+msgid "plugins.pubIds.sri.issue.noArticles"
+msgstr "No articles are currently assigned to this issue."
+
+msgid "plugins.pubIds.sri.status.none"
+msgstr "Not assigned"
+
+msgid "plugins.pubIds.sri.editor.clearIssueObjectsSri"
+msgstr "Clear article SRIs"
+
+msgid "plugins.pubIds.sri.editor.clearIssueObjectsSri.description"
+msgstr "Clear all locally stored SRIs for all articles in this issue."
+
+msgid "plugins.pubIds.sri.editor.clearIssueObjectsSri.confirm"
+msgstr "Are you sure you want to remove the locally stored SRIs for all articles in this issue?"

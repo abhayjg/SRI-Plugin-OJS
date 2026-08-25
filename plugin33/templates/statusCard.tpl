@@ -16,7 +16,7 @@
 
 	{if $sriFullSri}
 		<p>
-			{$sriFullSri|escape}
+			<strong>{$sriDisplaySri|default:$sriFullSri|escape}</strong>
 			{if $sriResolvingUrl}&nbsp;<a href="{$sriResolvingUrl|escape}" target="_blank" rel="noopener">{translate key="plugins.pubIds.sri.status.resolve"}</a>{/if}
 		</p>
 	{/if}

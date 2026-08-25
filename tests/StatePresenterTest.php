@@ -20,6 +20,8 @@ class StatePresenterTest extends SriTestCase
         // Full Sri stored, no cached status -> at least registered
         $r = $p->present('sri:2026.1001.jor.42+A', null);
         $this->same('sri:2026.1001.jor.42+A', $r['fullSri'], 'fullSri surfaced');
+        $this->same('2026.1001.jor.42', $r['displaySri'], 'displaySri surfaced');
+        $this->same('sri:2026.1001.jor.42', $r['publicSri'], 'publicSri surfaced');
         $this->same(true, in_array($r['state'], ['active', 'pending_review', 'registered', 'withdrawn', 'tombstoned'], true), 'registered-ish state');
 
         // Full Sri + cached pending

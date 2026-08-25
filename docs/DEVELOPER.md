@@ -47,6 +47,7 @@ See the SRI-Backend OpenAPI (production-exposed `/api/docs.json`). Key endpoints
 | `POST /api/v1/register/bulk` (multipart CSV) | back-catalog (202: `{ data: { jobId, totalRows } }`) |
 | `GET /api/v1/bulk-jobs/{id}` | bulk job polling |
 | `GET /api/v1/metadata/{fullSri}` | status polling (public) |
+| `GET /api/v1/account/status` (`X-SRI-API-Key`) | account/membership/quota/prefix status; proxied through the OJS settings action |
 | `PATCH /api/v1/metadata/{fullSri}` | re-deposit on edit (**backend currently JWT-gated** — see Known gaps) |
 
 Payload field names map 1:1 to SRI-Backend's `RegistrationRequest` schema
@@ -80,7 +81,8 @@ php -d phar.readonly=0 build/package.php   # produce dist/*.tar.gz
 Every PR touching the network path should re-verify: no
 `CURLOPT_SSL_VERIFYPEER`/`VERIFYHOST` disabled; hard timeouts present; CSRF
 checked on management verbs; `|escape` on every dynamic value in templates.
-See `docs/SECURITY.md`.
+The account status response is allow-listed and bounded, and the OJS settings
+action returns only an escaped server-rendered partial. See `docs/SECURITY.md`.
 
 ## Known gaps / follow-ups
 

@@ -20,7 +20,7 @@ namespace SRI\Plugin;
 
 final class ApiClient
 {
-    /** @var string Base URL, no trailing slash (e.g. https://api.sri.scitekhub.com/api/v1) */
+    /** @var string Base URL, no trailing slash (e.g. https://api-sri.scitekhub.com/api/v1) */
     private string $baseUrl;
 
     /** @var string API key (X-SRI-API-Key header value). */

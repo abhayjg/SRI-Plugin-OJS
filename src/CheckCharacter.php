@@ -98,4 +98,42 @@ final class CheckCharacter
             'checkChar' => strtoupper($m[4]),
         ];
     }
+
+    /**
+     * Extract the clean public ID without 'sri:' prefix and without '+CHECKCHAR'.
+     *
+     * Examples:
+     *   cleanSri("sri:2026.1002.wjpst.1+I") -> "2026.1002.wjpst.1"
+     *   cleanSri("2026.1002.wjpst.1+I")     -> "2026.1002.wjpst.1"
+     *   cleanSri("sri:2026.1002.wjpst.1")   -> "2026.1002.wjpst.1"
+     *   cleanSri("2026.1002.wjpst.1")       -> "2026.1002.wjpst.1"
+     */
+    public static function cleanSri(string $sri): string
+    {
+        $clean = trim($sri);
+        if (str_starts_with(strtolower($clean), 'sri:')) {
+            $clean = substr($clean, 4);
+        }
+        return (string)preg_replace('/\+([0-9A-Za-z])$/', '', $clean);
+    }
+
+    /**
+     * Ensure the 'sri:' prefix but strip the '+CHECKCHAR'.
+     *
+     * Examples:
+     *   publicSri("sri:2026.1002.wjpst.1+I") -> "sri:2026.1002.wjpst.1"
+     *   publicSri("2026.1002.wjpst.1+I")     -> "sri:2026.1002.wjpst.1"
+     */
+    public static function publicSri(string $sri): string
+    {
+        $sri = trim($sri);
+        if ($sri === '') {
+            return '';
+        }
+        if (!str_starts_with(strtolower($sri), 'sri:')) {
+            $sri = 'sri:' . $sri;
+        }
+        return (string)preg_replace('/\+([0-9A-Za-z])$/', '', $sri);
+    }
 }
+

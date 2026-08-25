@@ -5,7 +5,7 @@
 | Setting | Default | Meaning |
 |---|---|---|
 | SRI API base URL | — | Root of the SRI REST API, ending `/api/v1`. Use a sandbox for testing. |
-| SRI API key | — | `X-SRI-API-Key` credential. Create **scoped** (`identifier:register`) in the SRI dashboard. |
+| SRI API key | — | `X-SRI-API-Key` credential. Create **scoped** (`identifier:register`) in the SRI dashboard. The settings status readout accepts this existing scope or `identifier:read`. |
 | SRI prefix | — | Numeric prefix (e.g. `1001`); part of every registered identifier. |
 | SRI resolver URL (optional) | derived from base URL | Used to build clickable "Resolve" links. |
 | Register article (publication) | on | Enables SRI-Plugin identifiers for articles at the publication level. |
@@ -60,6 +60,19 @@ Because the membership gate is evaluated **fresh on every registration call**
 (never cached against the key), a lapsed membership stops new identifiers
 immediately with that same still-valid API key; renewal restores registrations
 with no plugin change.
+
+## Account connection status
+
+The settings form's **Connection status** panel calls the OJS component endpoint,
+which performs `GET /api/v1/account/status` server-side. The API key is never
+sent to browser JavaScript or exposed to a third-party origin. The response shows
+account and partner state, membership expiry, SRI quota, prefix quota, and the
+configured prefix's availability. The backend returns at most 100 prefixes and
+marks a larger result with `prefixesTruncated`.
+
+The panel refreshes after a successful settings save and has a manual refresh
+control, so quota, membership, and prefix changes appear without reopening the
+settings screen.
 
 ## Per-article actions
 

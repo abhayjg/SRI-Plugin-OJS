@@ -24,6 +24,7 @@ plugins extend.
 | Automatic registration on publish | Hooked into OJS's publish event; calls `POST /api/v1/register` with `X-SRI-API-Key` |
 | Manual "Register now" | Per-article action in OJS when auto-registration is off, failed, or needs a retry |
 | Status display | Not registered / Pending SRI review / Active / Failed (with the exact reason) |
+| Account connection status | Settings readout for membership, SRI quota, prefix quota, and configured-prefix availability |
 | Re-deposit on edit | Offers to push metadata updates via `PATCH /api/v1/metadata/{fullSri}` |
 | Back-catalog registration | "Register Back Catalog" screen in the plugin settings |
 | Manual SRI attach | Attach an already-registered SRI without triggering a new registration |

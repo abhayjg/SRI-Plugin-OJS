@@ -41,6 +41,14 @@ class CheckCharacterTest extends SriTestCase
         // Empty suffix rejected
         $this->assertThrows(fn () => \SRI\Plugin\CheckCharacter::buildSri(2026, 1001, ''), 'empty suffix throws');
 
+        // Clean and public SRI extraction
+        $this->same('2026.1002.wjpst.1', \SRI\Plugin\CheckCharacter::cleanSri('sri:2026.1002.wjpst.1+I'), 'cleanSri from full');
+        $this->same('2026.1002.wjpst.1', \SRI\Plugin\CheckCharacter::cleanSri('2026.1002.wjpst.1+I'), 'cleanSri without scheme');
+        $this->same('2026.1002.wjpst.1', \SRI\Plugin\CheckCharacter::cleanSri('sri:2026.1002.wjpst.1'), 'cleanSri without checkChar');
+        $this->same('2026.1002.wjpst.1', \SRI\Plugin\CheckCharacter::cleanSri('2026.1002.wjpst.1'), 'cleanSri already clean');
+        $this->same('sri:2026.1002.wjpst.1', \SRI\Plugin\CheckCharacter::publicSri('sri:2026.1002.wjpst.1+I'), 'publicSri with scheme');
+        $this->same('sri:2026.1002.wjpst.1', \SRI\Plugin\CheckCharacter::publicSri('2026.1002.wjpst.1+I'), 'publicSri without scheme');
+
         // Regex disallows obviously malformed inputs
         $this->isFalse(\SRI\Plugin\CheckCharacter::isValid('not-an-sri'), 'malformed rejected');
         $this->isFalse(\SRI\Plugin\CheckCharacter::isValid(''), 'empty rejected');

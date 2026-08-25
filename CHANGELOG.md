@@ -3,7 +3,77 @@
 All notable changes to SRI-Plugin are documented in this file. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [1.0.3] — 2026-08-20
+## [1.2.0] — 2026-08-24
+
+Compatibility, Issue Identifiers UI, and back-catalog modal improvements.
+
+### Added
+
+- **Issue Identifiers Article Summary**: Opening the **Issue Management > Identifiers** tab now renders a clean summary table displaying all articles assigned to that issue, their assigned SRI identifiers with clickable resolver links, and their live registration status badge (`Active`, `Pending`, `Not assigned`, etc.).
+- **Issue-Level Clear Action**: Added `clearIssueObjectsPubIds` link action allowing editors to clear and re-mint local SRIs for all articles in an issue in one click.
+- **Issue & SubmissionFile Object Support**: Registered `Issue` and `SubmissionFile` in `getPubObjectTypes()` and `getDAOs()` to prevent OJS `PKPPubIdPlugin::getPubObjectType()` assertion failures on PHP 8.3+.
+
+### Fixed
+
+- **Issue Publishing & Identifiers 500 Crash**: Fixed `AssertionError: assert(false)` in `PKPPubIdPlugin.php` when opening the *Publish Issue* modal or issue *Identifiers* tab by declaring `Issue` in `getPubObjectTypes()` and safely disabling issue-level SRI by default.
+- **Publication Settings DAO Conflict**: Updated `setStoredPubId()` to directly use safe `updateOrInsert` across `publication_settings`, ensuring 100% independence from OJS core and eliminating `1062 Duplicate Entry` errors.
+- **Register Back Catalog Modal CSRF & Query**:
+  - Removed CSRF blocking on GET modal requests (`verb=bulk` and `verb=accountStatus`) while maintaining strict `{csrf}` protection on the form submission (`bulkRun`).
+  - Fixed `Undefined constant APP\issue\Repository::ORDERBY_SEQUENCE` fatal error when querying journal issues for the back-catalog selector dropdown.
+  - Added `translate=false` to the issue selector element in `bulkForm.tpl` to prevent dynamic issue names from triggering missing translation dictionary warnings.
+
+## [1.0.6] — 2026-08-22
+
+Connectivity and account visibility fixes.
+
+### Fixed
+
+- All plugin management URLs now explicitly target OJS's component router, so
+  actions rendered inside the publication identifiers form no longer fall
+  through to a page-router 404.
+- Added a bounded, API-key-scoped account status endpoint and a server-side OJS
+  settings readout for membership, quota, and prefix state. The API key never
+  reaches browser JavaScript.
+- Added request cancellation, stale-response protection, and cleanup for the
+  settings status refresh handler.
+
+## [1.0.4] — 2026-08-21
+
+Settings form audit fixes — address all confirmed bugs from the settings-form audit
+(`docs/SETTINGS-FORM-AUDIT-AND-FIX-PLAN.md`).
+
+### Fixed
+
+- **Base URL rejects localhost/private IPs** (`#2`): The `sriBaseUrl` field used OJS's built-in
+  `FormValidatorUrl`, which attaches a jQuery Validate `url` CSS class that enforces a public-URL
+  regex client-side — explicitly rejecting `localhost`, `127.0.0.1`, `10.x.x.x`, `192.168.x.x`,
+  and any other private/loopback address. This blocked all local development and internal-network
+  deployments before the form even submitted. Fixed by replacing `FormValidatorUrl` with
+  `FormValidatorRegExp` using a permissive `scheme://host[:port]/path` pattern (consistent with
+  how `sriPrefix` already uses its own custom regex validator). Also added a compile-time default
+  (`DEFAULT_BASE_URL = 'https://api-sri.scitekhub.com/api/v1'`) so new journals see a working
+  value instead of a blank required field.
+- **Suffix pattern falsely required** (`#4`): Selecting "Default" or "Manual" suffix mode and
+  saving still failed validation, demanding the custom-pattern field be filled in — even though
+  that field is only meant to be required when "Custom pattern" is selected. Root cause: OJS
+  core's `FormValidator` base class unconditionally adds a `required` CSS class to any field
+  registered with type `'required'`, regardless of the PHP-side closure's actual logic; jQuery
+  Validate then blocks submission client-side. Fixed by creating `SriSettingsFormHandler.js`
+  (both adapters) — a custom form handler extending `AjaxFormHandler` that toggles the
+  `required` class on `sriPublicationSuffixPattern` based on the selected suffix-mode radio,
+  mirroring the conditional suffix handling shipped by OJS's own DOI plugin
+  (`plugins/pubIds/doi/js/DOISettingsFormHandler.js`).
+- **Galley checkbox does nothing** (`#1a`): The "Also register SRIs for galleys" checkbox was
+  shipped ahead of the feature it controls — no hook, no code path ever reads
+  `enableRepresentationSri` to actually register galley-level identifiers. The checkbox was
+  hidden from the settings form to avoid misleading publishers. The setting is preserved in the
+  database for forward compatibility when the feature is built.
+- **Bulk registration not gated by article checkbox** (`#1b`): Unchecking "Register an SRI for
+  each article" correctly prevented automatic registration on publish and hid the per-article
+  status card, but the "Register back catalog" bulk tool had no relationship to
+  `isObjectTypeEnabled` and would still happily register everything. Added
+  `isObjectTypeEnabled('Publication', $contextId)` guard at the top of `actionBulkRun()` and
+  `registerSubmission()` in both adapters, so every registration path respects the checkbox.
 
 Fourth pass, found by inspection while preparing a user walkthrough of the settings form (not
 a reported crash) — same live-install session.
