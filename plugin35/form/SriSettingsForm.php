@@ -1,7 +1,7 @@
 <?php
 
 /**
- * @file plugins/pubIds/sri/form/SriSettingsForm.inc.php
+ * @file plugins/pubIds/sri/form/SriSettingsForm.php
  *
  * Copyright (c) 2026 Scitekhub
  * Distributed under the GNU GPL v3. See docs/COPYING or <https://www.gnu.org/licenses/>.
@@ -9,70 +9,92 @@
  * @class SriSettingsForm
  * @ingroup plugins_pubIds_sri
  *
- * @brief Settings form for journal managers to configure SRI-Plugin (OJS 3.3).
+ * @brief Settings form for journal managers to configure SRI-Plugin (OJS 3.5).
  */
 
-import('lib.pkp.classes.form.Form');
+namespace APP\plugins\pubIds\sri\form;
+
+use APP\plugins\pubIds\sri\SriPubIdPlugin;
+use PKP\form\Form;
 
 class SriSettingsForm extends Form
 {
     /** Default production SRI API base URL (pre-filled for new journals). */
-    const DEFAULT_BASE_URL = 'https://api-sri.scitekhub.com/api/v1';
+    public const DEFAULT_BASE_URL = 'https://api-sri.scitekhub.com/api/v1';
 
     /** @var int Context (journal) id. */
-    private $_contextId;
+    private int $_contextId;
 
     /** @var SriPubIdPlugin */
-    private $_plugin;
+    private SriPubIdPlugin $_plugin;
 
-    public function __construct($plugin, $contextId)
+    public function __construct(SriPubIdPlugin $plugin, int $contextId)
     {
         parent::__construct($plugin->getTemplateResource('settingsForm.tpl'));
 
         $this->_contextId = $contextId;
         $this->_plugin = $plugin;
 
-        $this->addCheck(new FormValidatorPost($this));
-        $this->addCheck(new FormValidatorCSRF($this));
+        $this->addCheck(new \PKP\form\validation\FormValidatorPost($this));
+        $this->addCheck(new \PKP\form\validation\FormValidatorCSRF($this));
 
         // Use a permissive regex instead of OJS's built-in URL validator, which
         // rejects localhost and private IPs via jQuery Validate's client-side rules.
-        $this->addCheck(new FormValidatorRegExp($this, 'sriBaseUrl', 'required', 'plugins.pubIds.sri.manager.settings.sriBaseUrlRequired', '/^https?:\/\/[a-zA-Z0-9.\-]+(:\d+)?(\/.*)?$/'));
-        $this->addCheck(new FormValidator($this, 'sriApiKey', 'required', 'plugins.pubIds.sri.manager.settings.sriApiKeyRequired'));
-        $this->addCheck(new FormValidatorRegExp($this, 'sriPrefix', 'required', 'plugins.pubIds.sri.manager.settings.sriPrefixRequired', '/^\d{1,8}$/'));
+        $this->addCheck(new \PKP\form\validation\FormValidatorRegExp(
+            $this,
+            'sriBaseUrl',
+            'required',
+            'plugins.pubIds.sri.manager.settings.sriBaseUrlRequired',
+            '/^https?:\/\/[a-zA-Z0-9.\-]+(:\d+)?(\/.*)?$/'
+        ));
+        $this->addCheck(new \PKP\form\validation\FormValidator(
+            $this,
+            'sriApiKey',
+            'required',
+            'plugins.pubIds.sri.manager.settings.sriApiKeyRequired'
+        ));
+        $this->addCheck(new \PKP\form\validation\FormValidatorRegExp(
+            $this,
+            'sriPrefix',
+            'required',
+            'plugins.pubIds.sri.manager.settings.sriPrefixRequired',
+            '/^\d{1,8}$/'
+        ));
 
         $form = $this;
-        $this->addCheck(new FormValidatorCustom(
+        $this->addCheck(new \PKP\form\validation\FormValidatorCustom(
             $this,
             'sriPublicationSuffixPattern',
             'required',
             'plugins.pubIds.sri.manager.settings.sriPublicationSuffixPatternRequired',
-            function ($pattern) use ($form) {
+            static function ($pattern) use ($form) {
                 if ($form->getData('sriSuffix') !== 'pattern') {
                     return true;
                 }
                 return is_string($pattern) && trim($pattern) !== '';
             }
         ));
-        $this->addCheck(new FormValidatorCustom(
+
+        $this->addCheck(new \PKP\form\validation\FormValidatorCustom(
             $this,
             'sriConnectTimeout',
             'required',
             'plugins.pubIds.sri.manager.settings.sriTimeoutRange',
-            function ($value) {
+            static function ($value) {
                 return is_numeric($value) && (int)$value >= 1 && (int)$value <= 120;
             }
         ));
-        $this->addCheck(new FormValidatorCustom(
+        $this->addCheck(new \PKP\form\validation\FormValidatorCustom(
             $this,
             'sriTimeout',
             'required',
             'plugins.pubIds.sri.manager.settings.sriTimeoutRange',
-            function ($value) {
+            static function ($value) {
                 return is_numeric($value) && (int)$value >= 1 && (int)$value <= 300;
             }
         ));
 
+        // A "clear all SRIs" action surfaced in the settings form.
         $this->setData('sriClearLinkAction', $plugin->getClearAllLinkAction($this->_contextId));
         $this->setData('sriBulkLinkAction', $plugin->getBulkLinkAction($this->_contextId));
         $this->setData('sriPluginName', $plugin->getName());
@@ -100,6 +122,9 @@ class SriSettingsForm extends Form
     // Form overrides
     //
 
+    /**
+     * @copydoc Form::initData()
+     */
     public function initData()
     {
         $plugin = $this->_plugin;
@@ -121,24 +146,30 @@ class SriSettingsForm extends Form
         $this->setData('sriTimeout', (int)$plugin->setting($contextId, 'sriTimeout', 30));
     }
 
+    /**
+     * @copydoc Form::readInputData()
+     */
     public function readInputData()
     {
-        $this->readUserVars($this->_getFormFields());
+        $this->readUserVars($this->getFormFields());
     }
 
+    /**
+     * @copydoc Form::execute()
+     */
     public function execute(...$functionArgs)
     {
         $plugin = $this->_plugin;
         $contextId = $this->_contextId;
 
-        foreach ($this->_getFormFields() as $field) {
+        foreach ($this->getFormFields() as $field) {
             $value = $this->getData($field);
             if (in_array($field, ['enablePublicationSri', 'enableRepresentationSri', 'sriAutoRegister', 'sriIncludeDoi'], true)) {
                 $value = $value ? '1' : '0';
             } elseif (in_array($field, ['sriConnectTimeout', 'sriTimeout'], true)) {
                 $value = (int)$value;
             }
-            $plugin->updateSetting($contextId, $field, $value, $this->_settingType($field));
+            $plugin->updateSetting($contextId, $field, $value, $this->settingType($field));
         }
 
         parent::execute(...$functionArgs);
@@ -148,7 +179,10 @@ class SriSettingsForm extends Form
     // Helpers
     //
 
-    private function _getFormFields()
+    /**
+     * @return string[] Field names read from the form.
+     */
+    private function getFormFields(): array
     {
         return [
             'enablePublicationSri',
@@ -168,7 +202,7 @@ class SriSettingsForm extends Form
         ];
     }
 
-    private function _settingType($field)
+    private function settingType(string $field): string
     {
         if (in_array($field, ['enablePublicationSri', 'enableRepresentationSri', 'sriAutoRegister', 'sriIncludeDoi'], true)) {
             return 'bool';

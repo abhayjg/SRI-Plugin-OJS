@@ -3,6 +3,28 @@
 All notable changes to SRI-Plugin are documented in this file. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.1] — 2026-08-26
+
+Full OJS 3.5 compatibility, session CSRF hardening, Issue Identifiers tab fixes, intelligent dev/prod URL mapping, and clean SRI check-character slicing.
+
+### Added
+
+- **Dedicated OJS 3.5 Adapter (`plugin35/`)**: Complete native adapter engineered for OJS 3.5.x, aligning with OJS 3.5 class hierarchies, `APP\plugins\PubIdPlugin` method signatures, Smarty strict syntax requirements, and repository facades.
+- **Intelligent Dev & Production URL Mapping**: Automatically maps backend API endpoints to correct frontend web applications across all environments:
+  - Localhost dev: `http://localhost:4000/api/v1` or `http://127.0.0.1:4000/api/v1` -> `http://localhost:3000` (or `http://127.0.0.1:3000`).
+  - Production: `https://api-sri.scitekhub.com/api/v1` or `https://api.scitekhub.com/api/v1` -> `https://sri.scitekhub.com`.
+  - Configurable override: Custom `sriResolverUrl` setting takes precedence when explicitly defined.
+- **Clean SRI Slicing**: Slices public resolving URLs to clean format (stripping `sri:` prefix and `+CHECKCHAR` suffix, e.g. `sri:2026.1002.wjpst.1-6+S` -> `https://sri.scitekhub.com/2026.1002.wjpst.1-6`).
+- **Resolver URL Test Suite**: Added `tests/ResolverUrlTest.php` to continuously validate all dev/prod URL mappings and check-character slicing rules.
+
+### Fixed
+
+- **OJS 3.5 Session CSRF Fatal Error**: Fixed `BadMethodCallException: Method Illuminate\Session\Store::getCSRFToken does not exist` when opening the Issue Identifiers modal on OJS 3.5 by implementing safe polymorphic session inspection (`getSessionCsrfToken`).
+- **Issue Identifiers Modal LinkAction Routing**: Corrected `getLinkActions` URL generation using standard OJS PubId component routes and unqualified plugin class name (`SriPubIdPlugin`), restoring full functionality to the Issue Edit Identifiers tab.
+- **Template Safety Guards**: Added `{if $clearPubIdLinkActionSri}` guards in `identifierStatus.tpl` across all plugin versions to prevent unassigned template variable notices.
+- **Undefined cURL Constant in ApiClient**: Replaced non-existent `CURLE_PEER_FAILED_VERIFICATION` constant in `src/ApiClient.php` with standard `CURLE_SSL_CACERT`.
+- **OJS 3.3 Version Constant Reference**: Fixed `$plugin->getVersion()` fatal call in `plugin33/form/SriSettingsForm.inc.php` by referencing `$plugin::VERSION`.
+
 ## [1.2.0] — 2026-08-24
 
 Compatibility, Issue Identifiers UI, and back-catalog modal improvements.

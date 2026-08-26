@@ -7,12 +7,7 @@
   * Copyright (c) 2026 Scitekhub
   * Distributed under the GNU GPL v3. For full terms see docs/COPYING.
   *
-  * SRI-Plugin version information.
-  *
-  * NOTE: The OJS-visible identifier / class prefix is "sri" (folder = sri) —
-  * OJS requires folder/class names to match and forbids mixed case "SRI-Plugin".
-  * The plugin's displayed name and the public identifier type are
-  * "SRI-Plugin". This is intentional: the project/plugin name is SRI-Plugin.
+  * SRI-Plugin version information for OJS 3.5.
   -->
 <version>
 	<application>sri</application>

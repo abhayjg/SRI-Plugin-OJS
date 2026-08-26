@@ -50,7 +50,7 @@ class SriPubIdPlugin extends PKPPubIdPlugin
     /** Public display string. The project/plugin name is SRI-Plugin. */
     public const DISPLAY_TYPE = 'SRI-Plugin';
 
-    public const VERSION = '1.2.0';
+    public const VERSION = '1.2.1';
 
     /** @var bool Ensures the shared SRI\Plugin\ core is loaded once. */
     private bool $_coreBootstrapped = false;
@@ -424,54 +424,34 @@ class SriPubIdPlugin extends PKPPubIdPlugin
     {
         $linkActions = [];
         $request = Application::get()->getRequest();
-        $userVars = $request->getUserVars();
-        $userVars['pubIdPlugIn'] = get_class($this);
+        $userVars = $request ? $request->getUserVars() : [];
+        $classNameParts = explode('\\', get_class($this));
+        $userVars['pubIdPlugIn'] = end($classNameParts);
 
-        $objectId = method_exists($pubObject, 'getId') ? $pubObject->getId() : null;
-        $submissionId = null;
-        if ($pubObject instanceof Submission) {
-            $submissionId = $pubObject->getId();
-        } elseif (method_exists($pubObject, 'getData')) {
-            $submissionId = $pubObject->getData('submissionId');
-        }
-
-        $actionArgs = [
-            'verb' => 'clearPubId',
-            'category' => 'pubIds',
-            'plugin' => $this->getName(),
-            'pubObjectId' => $objectId,
-            'submissionId' => $submissionId,
-            'csrfToken' => $request->getSession() ? $request->getSession()->getCSRFToken() : null,
-        ];
+        $session = $request ? $request->getSession() : null;
 
         $linkActions['clearPubIdLinkActionSri'] = new LinkAction(
             'clearPubId',
             new RemoteActionConfirmationModal(
-                $request->getSession(),
+                $session,
                 __('plugins.pubIds.sri.editor.clearObjectsSri.confirm'),
                 __('common.delete'),
-                $this->componentUrl($request, 'clearPubId', [
-                    'pubObjectId' => $objectId,
-                    'submissionId' => $submissionId,
-                    'csrfToken' => $actionArgs['csrfToken'],
-                ]),
-                'modal_delete'
+                $request ? $request->url(null, null, 'clearPubId', null, $userVars) : '',
+                'negative'
             ),
             __('plugins.pubIds.sri.editor.clearObjectsSri'),
             'delete'
         );
 
         if ($pubObject instanceof \APP\issue\Issue) {
-            $classNameParts = explode('\\', get_class($this));
-            $userVars['pubIdPlugIn'] = end($classNameParts);
             $linkActions['clearIssueObjectsPubIdsLinkActionSri'] = new LinkAction(
                 'clearObjectsPubIds',
                 new RemoteActionConfirmationModal(
-                    $request->getSession(),
+                    $session,
                     __('plugins.pubIds.sri.editor.clearIssueObjectsSri.confirm'),
                     __('common.delete'),
-                    $request->url(null, null, 'clearIssueObjectsPubIds', null, $userVars),
-                    'modal_delete'
+                    $request ? $request->url(null, null, 'clearIssueObjectsPubIds', null, $userVars) : '',
+                    'negative'
                 ),
                 __('plugins.pubIds.sri.editor.clearIssueObjectsSri'),
                 'delete',
@@ -551,14 +531,34 @@ class SriPubIdPlugin extends PKPPubIdPlugin
     }
 
     /**
+     * Safely obtain the CSRF token from the active session across OJS versions.
+     */
+    private function getSessionCsrfToken($request): ?string
+    {
+        $session = $request ? $request->getSession() : null;
+        if (!$session || !is_object($session)) {
+            return null;
+        }
+        if (method_exists($session, 'token')) {
+            return (string)$session->token();
+        }
+        if (method_exists($session, 'getCSRFToken')) {
+            return (string)$session->getCSRFToken();
+        }
+        if (method_exists($session, 'getCsrfToken')) {
+            return (string)$session->getCsrfToken();
+        }
+        return null;
+    }
+
+    /**
      * URL used by the settings form to request a server-side account status
      * readout. The API key never leaves the OJS server.
      */
     public function getAccountStatusUrl(): string
     {
         $request = Application::get()->getRequest();
-        $session = $request->getSession();
-        $csrf = $session && method_exists($session, 'getCSRFToken') ? $session->getCSRFToken() : null;
+        $csrf = $this->getSessionCsrfToken($request);
         return $this->componentUrl($request, 'accountStatus', ['csrfToken' => $csrf]);
     }
 
@@ -1247,8 +1247,7 @@ class SriPubIdPlugin extends PKPPubIdPlugin
         $presentation = $presenter->present($storedSri, $status);
 
         $request = Application::get()->getRequest();
-        $session = $request->getSession();
-        $csrf = $session && method_exists($session, 'getCSRFToken') ? $session->getCSRFToken() : null;
+        $csrf = $this->getSessionCsrfToken($request);
 
         $templateMgr = PKPTemplateManager::getManager($request);
         $templateMgr->assign([

@@ -39,6 +39,8 @@ final class StatePresenter
                 'state' => $effective,
                 'labelKey' => $this->labelFor($effective),
                 'fullSri' => $fullSri,
+                'displaySri' => CheckCharacter::cleanSri($fullSri),
+                'publicSri' => CheckCharacter::publicSri($fullSri),
                 'reason' => $this->reasonText($status),
             ];
         }
@@ -48,6 +50,8 @@ final class StatePresenter
                 'state' => StatusResolver::STATE_NOT_REGISTERED,
                 'labelKey' => 'plugins.pubIds.sri.status.notRegistered',
                 'fullSri' => '',
+                'displaySri' => '',
+                'publicSri' => '',
                 'reason' => '',
             ];
         }
@@ -56,6 +60,8 @@ final class StatePresenter
             'state' => $state,
             'labelKey' => $this->labelFor($state),
             'fullSri' => '',
+            'displaySri' => '',
+            'publicSri' => '',
             'reason' => $this->reasonText($status),
         ];
     }

@@ -5,7 +5,7 @@
  *
  * Builds the installable OJS plugin packages:
  *
- *   dist/sri-pubid-3.5.tar.gz   (OJS 3.5 — namespaced adapter; also installable on 3.4)
+ *   dist/sri-pubid-3.5.tar.gz   (OJS 3.5 — namespaced adapter)
  *   dist/sri-pubid-3.4.tar.gz   (OJS 3.4 — namespaced adapter)
  *   dist/sri-pubid-3.3.tar.gz   (OJS 3.3 — legacy adapter)
  *
@@ -28,9 +28,9 @@ if (!is_dir($dist) && !mkdir($dist, 0777, true) && !is_dir($dist)) {
     exit(1);
 }
 
-$version = '1.2.0';
+$version = '1.2.1';
 $builders = [
-    '3.5' => 'plugin34',
+    '3.5' => 'plugin35',
     '3.4' => 'plugin34',
     '3.3' => 'plugin33',
 ];
@@ -99,51 +99,58 @@ foreach ($builders as $ojsVersion => $adapterDir) {
     if (is_file($gzPath)) {
         echo "Built dist/sri-pubid-{$ojsVersion}.tar.gz\n";
     } else {
-        fwrite(STDERR, "Failed to build sri-pubid-{$ojsVersion}.tar.gz\n");
+        fwrite(STDERR, "Target was not created: {$gzPath}\n");
         exit(1);
     }
 }
 
-echo "Done.\n";
+echo "All packages built successfully.\n";
 
-function copyTree(string $from, string $to): void
+function copyTree(string $src, string $dst): void
 {
-    $iterator = new RecursiveIteratorIterator(
-        new RecursiveDirectoryIterator($from, FilesystemIterator::SKIP_DOTS),
+    if (!is_dir($src)) {
+        return;
+    }
+    if (!is_dir($dst) && !mkdir($dst, 0777, true) && !is_dir($dst)) {
+        fwrite(STDERR, "Could not create {$dst}\n");
+        exit(1);
+    }
+    $it = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($src, RecursiveDirectoryIterator::SKIP_DOTS),
         RecursiveIteratorIterator::SELF_FIRST
     );
-    foreach ($iterator as $item) {
-        /** @var SplFileInfo $item */
-        $target = $to . DIRECTORY_SEPARATOR . $iterator->getSubPathname();
+    foreach ($it as $item) {
+        $sub = $dst . DIRECTORY_SEPARATOR . $it->getSubPathname();
         if ($item->isDir()) {
-            if (!is_dir($target) && !mkdir($target, 0777, true) && !is_dir($target)) {
-                throw new RuntimeException("Could not create dir: {$target}");
+            if (!is_dir($sub) && !mkdir($sub, 0777, true) && !is_dir($sub)) {
+                fwrite(STDERR, "Could not create {$sub}\n");
+                exit(1);
             }
         } else {
-            if (!copy($item->getPathname(), $target)) {
-                throw new RuntimeException("Could not copy: {$item->getPathname()}");
+            // Skip transient / build artifacts if present
+            if (preg_match('/(\.DS_Store|Thumbs\.db|\.git.*)$/', $item->getFilename())) {
+                continue;
             }
+            copy($item->getPathname(), $sub);
         }
     }
 }
 
 function removeDir(string $dir): void
 {
-    $item = new RecursiveIteratorIterator(
-        new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS),
+    if (!is_dir($dir)) {
+        return;
+    }
+    $it = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($dir, RecursiveDirectoryIterator::SKIP_DOTS),
         RecursiveIteratorIterator::CHILD_FIRST
     );
-    foreach ($item as $file) {
-        /** @var SplFileInfo $file */
-        if ($file->isDir()) {
-            @rmdir($file->getPathname());
+    foreach ($it as $item) {
+        if ($item->isDir()) {
+            rmdir($item->getPathname());
         } else {
-            // Retry unlink on Windows where file handles may linger
-            for ($i = 0; $i < 3; $i++) {
-                if (@unlink($file->getPathname())) break;
-                usleep(100000);
-            }
+            unlink($item->getPathname());
         }
     }
-    @rmdir($dir);
+    rmdir($dir);
 }

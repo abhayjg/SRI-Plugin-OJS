@@ -94,7 +94,7 @@ final class StatusResolver
                 return ['key' => 'plugins.pubIds.sri.status.failed.duplicate', 'params' => [], 'message' => 'Duplicate SRI suffix.'];
             case 400:
             case 422:
-                return ['key' => 'plugins.pubIds.sri.status.failed.validation', 'params' => [], 'message' => $message !== '' ? $message : 'The SRI API rejected the registration metadata.'];
+                return ['key' => 'plugins.pubIds.sri.status.failed.validation', 'params' => ['message' => $message], 'message' => $message !== '' ? $message : 'The SRI API rejected the registration metadata.'];
             case 429:
                 return ['key' => 'plugins.pubIds.sri.status.failed.ratelimit', 'params' => [], 'message' => 'Too many requests — try again shortly.'];
             case 500:
@@ -103,7 +103,7 @@ final class StatusResolver
             case 504:
                 return ['key' => 'plugins.pubIds.sri.status.failed.server', 'params' => [], 'message' => 'SRI API server error — try again shortly.'];
             default:
-                return ['key' => 'plugins.pubIds.sri.status.failed.unknown', 'params' => [], 'message' => $message !== '' ? $message : 'SRI registration failed.'];
+                return ['key' => 'plugins.pubIds.sri.status.failed.unknown', 'params' => ['message' => $message], 'message' => $message !== '' ? $message : 'SRI registration failed.'];
         }
     }
 
@@ -114,6 +114,6 @@ final class StatusResolver
      */
     public function resolveTransportError(string $message): array
     {
-        return ['key' => 'plugins.pubIds.sri.status.failed.network', 'params' => [], 'message' => $message !== '' ? $message : 'Could not reach the SRI API.'];
+        return ['key' => 'plugins.pubIds.sri.status.failed.network', 'params' => ['message' => $message], 'message' => $message !== '' ? $message : 'Could not reach the SRI API.'];
     }
 }
