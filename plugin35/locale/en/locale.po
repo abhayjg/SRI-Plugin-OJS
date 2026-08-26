@@ -1,0 +1,347 @@
+msgid ""
+msgstr ""
+
+msgid "plugins.pubIds.sri.displayName"
+msgstr "SRI-Plugin"
+
+msgid "plugins.pubIds.sri.description"
+msgstr "Registers a Scitekhub Research Identifier (SRI) for each published article, automatically at publication time, via the SRI registration API — the same way publishers already expect a Crossref or DataCite DOI plugin to behave. Registration is always best-effort and never blocks publishing."
+
+msgid "plugins.pubIds.sri.fullName"
+msgstr "Scitekhub Research Identifier"
+
+msgid "plugins.pubIds.sri.status.label"
+msgstr "SRI status"
+
+msgid "plugins.pubIds.sri.status.notRegistered"
+msgstr "Not registered"
+
+msgid "plugins.pubIds.sri.status.queued"
+msgstr "Queued for registration"
+
+msgid "plugins.pubIds.sri.status.pending"
+msgstr "Pending SRI review"
+
+msgid "plugins.pubIds.sri.status.active"
+msgstr "Active"
+
+msgid "plugins.pubIds.sri.status.withdrawn"
+msgstr "Withdrawn"
+
+msgid "plugins.pubIds.sri.status.tombstoned"
+msgstr "Tombstoned"
+
+msgid "plugins.pubIds.sri.status.registered"
+msgstr "Registered"
+
+msgid "plugins.pubIds.sri.status.failed"
+msgstr "Failed"
+
+msgid "plugins.pubIds.sri.status.resolve"
+msgstr "Resolve"
+
+msgid "plugins.pubIds.sri.status.preview"
+msgstr "Will be registered with suffix \"{$suffix}\" on the next registration attempt."
+
+msgid "plugins.pubIds.sri.status.updatedAt"
+msgstr "Last updated: {$when}"
+
+msgid "plugins.pubIds.sri.status.reason"
+msgstr "Reason: {$reason}"
+
+msgid "plugins.pubIds.sri.status.failed.auth"
+msgstr "Reconnect your SRI API key."
+
+msgid "plugins.pubIds.sri.status.failed.suspended"
+msgstr "Account suspended or closed — contact SRI support."
+
+msgid "plugins.pubIds.sri.status.failed.expired"
+msgstr "Your SRI membership has expired — renew to register."
+
+msgid "plugins.pubIds.sri.status.failed.quota"
+msgstr "Quota exceeded — upgrade your plan."
+
+msgid "plugins.pubIds.sri.status.failed.prefix"
+msgstr "Prefix not set up — contact SRI support."
+
+msgid "plugins.pubIds.sri.status.failed.duplicate"
+msgstr "Duplicate SRI suffix — retried with a disambiguator or fix manually."
+
+msgid "plugins.pubIds.sri.status.failed.notfound"
+msgstr "SRI record not found — it may have been removed."
+
+msgid "plugins.pubIds.sri.status.failed.validation"
+msgstr "The SRI API rejected the registration metadata: {$message}"
+
+msgid "plugins.pubIds.sri.status.failed.ratelimit"
+msgstr "Too many requests to the SRI API — try again shortly."
+
+msgid "plugins.pubIds.sri.status.failed.server"
+msgstr "SRI API server error — try again shortly."
+
+msgid "plugins.pubIds.sri.status.failed.network"
+msgstr "Could not reach the SRI API: {$message}"
+
+msgid "plugins.pubIds.sri.status.failed.unknown"
+msgstr "SRI registration failed: {$message}"
+
+msgid "plugins.pubIds.sri.action.registerNow"
+msgstr "Register now"
+
+msgid "plugins.pubIds.sri.action.refresh"
+msgstr "Refresh status"
+
+msgid "plugins.pubIds.sri.action.attachExisting"
+msgstr "Attach existing SRI"
+
+msgid "plugins.pubIds.sri.action.attach"
+msgstr "Attach"
+
+msgid "plugins.pubIds.sri.action.registered"
+msgstr "Registered {$fullSri} (status: {$state})."
+
+msgid "plugins.pubIds.sri.action.attached"
+msgstr "Attached existing SRI {$fullSri}."
+
+msgid "plugins.pubIds.sri.editor.suffix"
+msgstr "SRI suffix"
+
+msgid "plugins.pubIds.sri.editor.assigned"
+msgstr "An SRI-Plugin identifier is assigned to this object."
+
+msgid "plugins.pubIds.sri.editor.notRegistered"
+msgstr "This article has no SRI-Plugin identifier yet. It is registered automatically when the article is published (or use \"Register now\")."
+
+msgid "plugins.pubIds.sri.editor.suffixNotUnique"
+msgstr "This SRI suffix is already in use. Choose a different suffix."
+
+msgid "plugins.pubIds.sri.editor.clearObjectsSri"
+msgstr "Clear SRI"
+
+msgid "plugins.pubIds.sri.editor.clearObjectsSri.confirm"
+msgstr "Remove the SRI-Plugin identifier from this object?"
+
+msgid "plugins.pubIds.sri.manager.settings.description"
+msgstr "Configure SRI-Plugin to register a Scitekhub Research Identifier (SRI) for each published article. Create a scoped API key (identifier:register) in the SRI dashboard first, then paste it below."
+
+msgid "plugins.pubIds.sri.manager.settings.sriObjects"
+msgstr "Objects to register"
+
+msgid "plugins.pubIds.sri.manager.settings.sriObjects.description"
+msgstr "Choose which objects receive an SRI-Plugin identifier at publication time."
+
+msgid "plugins.pubIds.sri.manager.settings.enablePublicationSri"
+msgstr "Register an SRI for each article (publication)"
+
+msgid "plugins.pubIds.sri.manager.settings.enableRepresentationSri"
+msgstr "Also register SRIs for galleys (representations)"
+
+msgid "plugins.pubIds.sri.manager.settings.connection"
+msgstr "SRI API connection"
+
+msgid "plugins.pubIds.sri.manager.settings.connection.description"
+msgstr "The SRI API base URL (ending in /api/v1), an API key scoped to identifier:register, and your numeric SRI prefix."
+
+msgid "plugins.pubIds.sri.manager.settings.status.initial"
+msgstr "Save the settings or refresh to check the SRI account connection."
+
+msgid "plugins.pubIds.sri.manager.settings.status.loading"
+msgstr "Checking SRI account status..."
+
+msgid "plugins.pubIds.sri.manager.settings.status.unavailable"
+msgstr "Unable to read SRI account status. Check the API URL, API key, and key scope."
+
+msgid "plugins.pubIds.sri.manager.settings.status.account"
+msgstr "Account status: {$status}"
+
+msgid "plugins.pubIds.sri.manager.settings.status.partner"
+msgstr "Partner status: {$status}"
+
+msgid "plugins.pubIds.sri.manager.settings.status.blocked"
+msgstr "Registration currently blocked: {$reason}"
+
+msgid "plugins.pubIds.sri.manager.settings.status.membership"
+msgstr "Membership expires: {$when} ({$days} day(s) remaining)"
+
+msgid "plugins.pubIds.sri.manager.settings.status.membershipNone"
+msgstr "Membership expiry: not set"
+
+msgid "plugins.pubIds.sri.manager.settings.status.quota"
+msgstr "SRI quota: {$used} / {$quota} used ({$remaining} remaining)"
+
+msgid "plugins.pubIds.sri.manager.settings.status.prefixQuota"
+msgstr "Prefix quota: {$used} / {$assigned} used ({$remaining} remaining)"
+
+msgid "plugins.pubIds.sri.manager.settings.status.prefixMissing"
+msgstr "Configured prefix {$prefix} was not found in this account."
+
+msgid "plugins.pubIds.sri.manager.settings.status.prefix"
+msgstr "Prefix {$prefix}: {$status}"
+
+msgid "plugins.pubIds.sri.manager.settings.status.autoApprove"
+msgstr "auto-approval enabled"
+
+msgid "plugins.pubIds.sri.manager.settings.status.prefixesTruncated"
+msgstr "Only the first 100 prefixes are shown."
+
+msgid "plugins.pubIds.sri.manager.settings.status.refresh"
+msgstr "Refresh account status"
+
+msgid "plugins.pubIds.sri.manager.settings.sriBaseUrl"
+msgstr "SRI API base URL"
+
+msgid "plugins.pubIds.sri.manager.settings.sriBaseUrlRequired"
+msgstr "An SRI API base URL (ending in /api/v1) is required."
+
+msgid "plugins.pubIds.sri.manager.settings.sriApiKey"
+msgstr "SRI API key"
+
+msgid "plugins.pubIds.sri.manager.settings.sriApiKey.description"
+msgstr "Use a key scoped to identifier:register only (least privilege). If this key is ever compromised, rotate/revoke it in the SRI dashboard and paste the new value here."
+
+msgid "plugins.pubIds.sri.manager.settings.sriApiKeyRequired"
+msgstr "An SRI API key is required."
+
+msgid "plugins.pubIds.sri.manager.settings.sriPrefix"
+msgstr "SRI prefix"
+
+msgid "plugins.pubIds.sri.manager.settings.sriPrefix.description"
+msgstr "Your numeric SRI prefix (e.g. 1001). It is part of every identifier this journal registers."
+
+msgid "plugins.pubIds.sri.manager.settings.sriPrefixRequired"
+msgstr "A numeric SRI prefix is required."
+
+msgid "plugins.pubIds.sri.manager.settings.sriResolverUrl"
+msgstr "SRI resolver URL (optional)"
+
+msgid "plugins.pubIds.sri.manager.settings.sriResolverUrl.description"
+msgstr "Leave empty to derive the resolver from the API base URL. Used to build clickable resolve links."
+
+msgid "plugins.pubIds.sri.manager.settings.automation"
+msgstr "Automation"
+
+msgid "plugins.pubIds.sri.manager.settings.sriAutoRegister"
+msgstr "Register automatically when an article is published"
+
+msgid "plugins.pubIds.sri.manager.settings.sriAutoRegister.description"
+msgstr "On: registration happens inside the publish flow (best-effort — publishing never waits for it). Off: use \"Register now\" per article or the back-catalog tool."
+
+msgid "plugins.pubIds.sri.manager.settings.sriBulk.label"
+msgstr "Register the back catalog: pick an issue and register SRI-Plugin identifiers for all its published articles at once."
+
+msgid "plugins.pubIds.sri.manager.settings.sriSuffix"
+msgstr "Suffix generation"
+
+msgid "plugins.pubIds.sri.manager.settings.sriSuffix.description"
+msgstr "Suffixes are generated by the plugin (the SRI identifier itself is minted server-side by the SRI API). Tokens: %j journal initials, %v volume, %i issue, %Y year, %y 2-digit year, %a article id, %g galley id, %f file id, %p first page, %x article id."
+
+msgid "plugins.pubIds.sri.manager.settings.sriSuffixDefault"
+msgstr "Default (journal initials + article id) — %j.%a"
+
+msgid "plugins.pubIds.sri.manager.settings.sriSuffixDefault.description"
+msgstr "Recommended: uses the simpler pattern that suits continuous publishing (mirrors the DOI-community recommendation)."
+
+msgid "plugins.pubIds.sri.manager.settings.sriSuffixManual"
+msgstr "Manual entry — no automatic suffix; an editor provides it per article"
+
+msgid "plugins.pubIds.sri.manager.settings.sriSuffixPattern"
+msgstr "Custom pattern"
+
+msgid "plugins.pubIds.sri.manager.settings.sriSuffixPattern.example"
+msgstr "Example: %j-%v-%i-%Y-%a-%p"
+
+msgid "plugins.pubIds.sri.manager.settings.sriPublicationSuffixPattern"
+msgstr "Article (publication) suffix pattern"
+
+msgid "plugins.pubIds.sri.manager.settings.sriPublicationSuffixPatternRequired"
+msgstr "A suffix pattern is required when using custom-pattern mode."
+
+msgid "plugins.pubIds.sri.manager.settings.metadata"
+msgstr "Metadata"
+
+msgid "plugins.pubIds.sri.manager.settings.sriIncludeDoi"
+msgstr "Include the article's companion DOI as a related identifier"
+
+msgid "plugins.pubIds.sri.manager.settings.sriIncludeDoi.description"
+msgstr "If the journal also assigns DOIs, the registered SRI record references the companion DOI (relation IsIdenticalTo)."
+
+msgid "plugins.pubIds.sri.manager.settings.sriFallbackPublisher"
+msgstr "Fallback publisher name (optional)"
+
+msgid "plugins.pubIds.sri.manager.settings.sriFallbackPublisher.description"
+msgstr "Used when the journal/context name should not be sent as the SRI publisher."
+
+msgid "plugins.pubIds.sri.manager.settings.timeouts"
+msgstr "Timeouts"
+
+msgid "plugins.pubIds.sri.manager.settings.timeouts.description"
+msgstr "Hard timeouts (seconds) for every outbound call to the SRI API. Defaults are safe; lower them if publishing feels slow, but never rely on disabling TLS."
+
+msgid "plugins.pubIds.sri.manager.settings.sriConnectTimeout"
+msgstr "Connect timeout (s)"
+
+msgid "plugins.pubIds.sri.manager.settings.sriTimeout"
+msgstr "Request timeout (s)"
+
+msgid "plugins.pubIds.sri.manager.settings.sriTimeoutRange"
+msgstr "Timeout must be a whole number within the allowed range."
+
+msgid "plugins.pubIds.sri.manager.settings.clearAll"
+msgstr "Clear all locally stored SRIs"
+
+msgid "plugins.pubIds.sri.manager.settings.clearAll.description"
+msgstr "Removes every SRI-Plugin identifier stored in OJS. This does NOT withdraw or delete identifiers from the SRI registry."
+
+msgid "plugins.pubIds.sri.manager.settings.clearAll.confirm"
+msgstr "Remove every locally stored SRI-Plugin identifier?"
+
+msgid "plugins.pubIds.sri.error.csrf"
+msgstr "Your session token is invalid or expired. Reload the page and try again."
+
+msgid "plugins.pubIds.sri.error.action"
+msgstr "The SRI action could not be completed. Reload the page and try again."
+
+msgid "plugins.pubIds.sri.error.missingSubmission"
+msgstr "No submission was specified."
+
+msgid "plugins.pubIds.sri.error.invalidSri"
+msgstr "That is not a valid SRI identifier. Expected format: sri:2026.1001.example+ABC"
+
+msgid "plugins.pubIds.sri.bulk.title"
+msgstr "Register back catalog (SRI-Plugin)"
+
+msgid "plugins.pubIds.sri.bulk.description"
+msgstr "Select an issue to register SRI-Plugin identifiers for every published article in it that does not already have one. Success/failure is reported per job."
+
+msgid "plugins.pubIds.sri.bulk.issue"
+msgstr "Issue"
+
+msgid "plugins.pubIds.sri.bulk.submit"
+msgstr "Register articles in this issue"
+
+msgid "plugins.pubIds.sri.bulk.none"
+msgstr "No unpublished/unregistered articles were found in this issue."
+
+msgid "plugins.pubIds.sri.bulk.failed"
+msgstr "The bulk registration request was rejected by the SRI API."
+
+msgid "plugins.pubIds.sri.bulk.submitted"
+msgstr "Submitted {$count} articles to the SRI bulk registration job ({$jobId}); {$skipped} already had an SRI and were skipped."
+
+msgid "plugins.pubIds.sri.issue.articlesTitle"
+msgstr "Articles in this Issue"
+
+msgid "plugins.pubIds.sri.issue.noArticles"
+msgstr "No articles are currently assigned to this issue."
+
+msgid "plugins.pubIds.sri.status.none"
+msgstr "Not assigned"
+
+msgid "plugins.pubIds.sri.editor.clearIssueObjectsSri"
+msgstr "Clear article SRIs"
+
+msgid "plugins.pubIds.sri.editor.clearIssueObjectsSri.description"
+msgstr "Clear all locally stored SRIs for all articles in this issue."
+
+msgid "plugins.pubIds.sri.editor.clearIssueObjectsSri.confirm"
+msgstr "Are you sure you want to remove the locally stored SRIs for all articles in this issue?"

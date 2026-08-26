@@ -21,7 +21,9 @@
 					{$storedPubId|escape}<br />
 					<span class="pkp_help">{translate key="plugins.pubIds.sri.editor.assigned"}</span>
 				</p>
-				{include file="linkAction/linkAction.tpl" action=$clearPubIdLinkActionSri contextId="publicIdentifiersForm"}
+				{if $clearPubIdLinkActionSri}
+					{include file="linkAction/linkAction.tpl" action=$clearPubIdLinkActionSri contextId="publicIdentifiersForm"}
+				{/if}
 			{/fbvFormSection}
 		{else}
 			{fbvFormSection}

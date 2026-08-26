@@ -16,6 +16,7 @@ ini_set('display_errors', '1');
 $root = dirname(__DIR__);
 $src = $root . DIRECTORY_SEPARATOR . 'src';
 $targets = [
+    $root . DIRECTORY_SEPARATOR . 'plugin35' . DIRECTORY_SEPARATOR . 'classes' . DIRECTORY_SEPARATOR . 'core',
     $root . DIRECTORY_SEPARATOR . 'plugin34' . DIRECTORY_SEPARATOR . 'classes' . DIRECTORY_SEPARATOR . 'core',
     $root . DIRECTORY_SEPARATOR . 'plugin33' . DIRECTORY_SEPARATOR . 'classes' . DIRECTORY_SEPARATOR . 'core',
 ];

@@ -12,6 +12,7 @@ class AdapterRoutingTest extends SriTestCase
     {
         $root = dirname(__DIR__);
         $adapters = [
+            $root . '/plugin35/SriPubIdPlugin.php',
             $root . '/plugin34/SriPubIdPlugin.php',
             $root . '/plugin33/SriPubIdPlugin.inc.php',
         ];

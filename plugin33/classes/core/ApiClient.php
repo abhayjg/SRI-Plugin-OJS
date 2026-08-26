@@ -230,7 +230,7 @@ final class ApiClient
         return match ($errno) {
             CURLE_OPERATION_TIMEOUTED, CURLE_OPERATION_TIMEOUTED + 0 => 'Request to the SRI API timed out: ' . $url,
             CURLE_COULDNT_CONNECT => 'Could not connect to the SRI API: ' . $url,
-            CURLE_SSL_CONNECT_ERROR, CURLE_PEER_FAILED_VERIFICATION, CURLE_SSL_CERTPROBLEM => 'TLS verification failed talking to the SRI API: ' . $url,
+            CURLE_SSL_CONNECT_ERROR, CURLE_SSL_CACERT, CURLE_SSL_CERTPROBLEM => 'TLS verification failed talking to the SRI API: ' . $url,
             default => $error !== '' ? $error : 'Unknown cURL error',
         };
     }
