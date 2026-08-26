@@ -36,7 +36,7 @@ class SriPubIdPlugin extends PubIdPlugin
     /** @var string Public display type. The project/plugin name is SRI-Plugin. */
     public const DISPLAY_TYPE = 'SRI-Plugin';
 
-    public const VERSION = '1.2.1';
+    public const VERSION = '1.2.2';
 
     /** @var bool Core bootstrapped flag. */
     private $_coreBootstrapped = false;

@@ -52,7 +52,8 @@ differs.
 
 ```
 src/                 Shared, version-independent core (namespaced SRI\Plugin)
-plugin34/            OJS 3.4/3.5 installable plugin (namespaced adapter)
+plugin35/            OJS 3.5 installable plugin (modern namespaced adapter)
+plugin34/            OJS 3.4 installable plugin (namespaced adapter)
 plugin33/            OJS 3.3 installable plugin (legacy adapter)
 build/               Packaging script (tar.gz builder) + OJS sandbox (Docker)
 tests/               PHP unit tests (zero-dependency runner; phpunit-ready)

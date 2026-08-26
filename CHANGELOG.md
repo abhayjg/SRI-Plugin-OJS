@@ -3,6 +3,16 @@
 All notable changes to SRI-Plugin are documented in this file. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.2] — 2026-08-26
+
+Version changes only.
+
+### Added
+version number changes only.
+
+### Fixed
+Nothing fixed.
+
 ## [1.2.1] — 2026-08-26
 
 Full OJS 3.5 compatibility, session CSRF hardening, Issue Identifiers tab fixes, intelligent dev/prod URL mapping, and clean SRI check-character slicing.
