@@ -14,6 +14,7 @@
  *
  * @brief Wrapper for the SRI-Plugin OJS plugin (OJS 3.3 legacy adapter).
  */
+require_once(dirname(__FILE__) . '/classes/bootstrap.php');
 require_once(dirname(__FILE__) . '/SriPubIdPlugin.inc.php');
 
 return new SriPubIdPlugin();

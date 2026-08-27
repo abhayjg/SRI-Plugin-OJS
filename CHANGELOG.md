@@ -3,6 +3,19 @@
 All notable changes to SRI-Plugin are documented in this file. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.3] — 2026-08-27
+
+Comprehensive OJS 3.3 legacy adapter fixes, PHP 8.0+ runtime compatibility, and DAO iterator hardening.
+
+### Fixed
+
+- **OJS 3.3 Account Status Endpoint (`actionAccountStatus`)**: Implemented the missing `actionAccountStatus()` handler and `renderAccountStatusBlock()` renderer in `plugin33/SriPubIdPlugin.inc.php`, resolving HTTP 500 errors when opening the plugin settings modal.
+- **OJS 3.3 `DAOResultFactory` Compatibility**: Replaced `iterator_to_array()` calls on `DAOResultFactory` in `issueOptions()` and `submissionIdsForIssue()` with safe `$result->toArray()` handling, resolving fatal `TypeError` crashes on PHP 8.0+ when opening the *Publish Issue* modal or issue *Identifiers* tab.
+- **OJS 3.3 Publication Author Data Access**: Corrected publication contributor extraction in `plugin33/classes/SriMetadataBuilder.inc.php` from `$publication->getAuthors()` to `$publication->getData('authors')`, fixing undefined method crashes during article metadata construction and publication registration.
+- **OJS 3.3 Static `Application::getRequest()` Calls**: Replaced static `Application::getRequest()` invocations across `plugin33/SriPubIdPlugin.inc.php` and `plugin33/classes/SriMetadataBuilder.inc.php` with non-static `Application::get()->getRequest()`.
+- **OJS 3.3 LinkAction and Request Modal Classes**: Added explicit imports for `LinkAction`, `AjaxModal`, and `RemoteActionConfirmationModal` in `plugin33/SriPubIdPlugin.inc.php`, and added safe fallback handling for context resolution in `componentUrl()` and `identifierStatus.tpl`.
+- **OJS 3.3 Core Bootstrap Autoloading**: Included `classes/bootstrap.php` unconditionally in `plugin33/index.php` and `plugin33/SriPubIdPlugin.inc.php`, ensuring all shared `SRI\Plugin\*` core services and data mappers are always autoloaded regardless of plugin enable state.
+
 ## [1.2.2] — 2026-08-26
 
 Version changes only.
