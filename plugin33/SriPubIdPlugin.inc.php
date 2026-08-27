@@ -18,6 +18,10 @@
  */
 
 import('classes.plugins.PubIdPlugin');
+import('lib.pkp.classes.linkAction.LinkAction');
+import('lib.pkp.classes.linkAction.request.AjaxModal');
+import('lib.pkp.classes.linkAction.request.RemoteActionConfirmationModal');
+require_once(dirname(__FILE__) . '/classes/bootstrap.php');
 
 use SRI\Plugin\ApiClient;
 use SRI\Plugin\ArticleData;
@@ -36,7 +40,7 @@ class SriPubIdPlugin extends PubIdPlugin
     /** @var string Public display type. The project/plugin name is SRI-Plugin. */
     public const DISPLAY_TYPE = 'SRI-Plugin';
 
-    public const VERSION = '1.2.2';
+    public const VERSION = '1.2.3';
 
     /** @var bool Core bootstrapped flag. */
     private $_coreBootstrapped = false;
@@ -208,19 +212,24 @@ class SriPubIdPlugin extends PubIdPlugin
         ];
     }
 
-    public function isObjectTypeEnabled($pubObjectType, $contextId)
+    public function isObjectTypeEnabled($pubObjectType, $contextId = null)
     {
+        if ($contextId === null) {
+            $request = Application::get()->getRequest();
+            $context = $request ? $request->getContext() : null;
+            $contextId = $context ? (int)$context->getId() : 0;
+        }
         if ($pubObjectType === 'Publication') {
-            return (bool)$this->setting($contextId, 'enablePublicationSri', true);
+            return (bool)$this->setting((int)$contextId, 'enablePublicationSri', true);
         }
         if ($pubObjectType === 'Representation') {
-            return (bool)$this->setting($contextId, 'enableRepresentationSri', false);
+            return (bool)$this->setting((int)$contextId, 'enableRepresentationSri', false);
         }
         if ($pubObjectType === 'Issue') {
-            return (bool)$this->setting($contextId, 'enableIssueSri', false);
+            return (bool)$this->setting((int)$contextId, 'enableIssueSri', false);
         }
         if ($pubObjectType === 'SubmissionFile') {
-            return (bool)$this->setting($contextId, 'enableSubmissionFileSri', false);
+            return (bool)$this->setting((int)$contextId, 'enableSubmissionFileSri', false);
         }
         return false;
     }
@@ -233,7 +242,7 @@ class SriPubIdPlugin extends PubIdPlugin
     public function getLinkActions($pubObject)
     {
         $linkActions = array();
-        $request = Application::getRequest();
+        $request = Application::get()->getRequest();
         $userVars = $request ? $request->getUserVars() : array();
         $classNameParts = explode('\\', get_class($this));
         $userVars['pubIdPlugIn'] = end($classNameParts);
@@ -258,7 +267,7 @@ class SriPubIdPlugin extends PubIdPlugin
 
     public function getClearAllLinkAction($contextId)
     {
-        $request = Application::getRequest();
+        $request = Application::get()->getRequest();
         return new LinkAction(
             'clearAllSri',
             new RemoteActionConfirmationModal(
@@ -275,7 +284,7 @@ class SriPubIdPlugin extends PubIdPlugin
 
     public function getBulkLinkAction($contextId)
     {
-        $request = Application::getRequest();
+        $request = Application::get()->getRequest();
         return new LinkAction(
             'sriBulk',
             new AjaxModal(
@@ -296,7 +305,13 @@ class SriPubIdPlugin extends PubIdPlugin
      */
     private function componentUrl($request, $verb, array $extraParams = array())
     {
-        $dispatcher = $request->getDispatcher();
+        $dispatcher = $request ? $request->getDispatcher() : null;
+        if (!$dispatcher) {
+            $dispatcher = Application::get()->getDispatcher();
+        }
+        if (!$dispatcher) {
+            return '';
+        }
         return $dispatcher->url(
             $request,
             ROUTE_COMPONENT,
@@ -335,7 +350,7 @@ class SriPubIdPlugin extends PubIdPlugin
 
     public function getAccountStatusUrl()
     {
-        $request = Application::getRequest();
+        $request = Application::get()->getRequest();
         $csrf = $this->getSessionCsrfToken($request);
         return $this->componentUrl($request, 'accountStatus', array('csrfToken' => $csrf));
     }
@@ -584,7 +599,7 @@ class SriPubIdPlugin extends PubIdPlugin
                 return false;
             }
 
-            $templateMgr = TemplateManager::getManager(Application::getRequest());
+            $templateMgr = TemplateManager::getManager(Application::get()->getRequest());
             $resolvingUrl = $this->getResolvingURL($contextId, (string)$fullSri);
             $templateMgr->addHeader(
                 'sriCitationMeta',
@@ -883,6 +898,15 @@ class SriPubIdPlugin extends PubIdPlugin
         ));
     }
 
+    private function actionAccountStatus($request, $contextId)
+    {
+        header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+        header('Pragma: no-cache');
+        $result = $this->getService($contextId)->checkAccountStatus();
+        $template = $this->renderAccountStatusBlock($request, $contextId, $result);
+        return new JSONMessage(true, $template);
+    }
+
     //
     // Rendering helpers ---------------------------------------------------------------
     //
@@ -897,7 +921,7 @@ class SriPubIdPlugin extends PubIdPlugin
         $presenter = new StatePresenter();
         $presentation = $presenter->present($storedSri, $status);
 
-        $request = Application::getRequest();
+        $request = Application::get()->getRequest();
         $csrf = $this->getSessionCsrfToken($request);
 
         $templateMgr = TemplateManager::getManager($request);
@@ -905,6 +929,8 @@ class SriPubIdPlugin extends PubIdPlugin
             'sriState' => $presentation['state'],
             'sriStateLabel' => __($presentation['labelKey']),
             'sriFullSri' => $presentation['fullSri'],
+            'sriDisplaySri' => $presentation['displaySri'] ?? CheckCharacter::cleanSri($presentation['fullSri']),
+            'sriPublicSri' => $presentation['publicSri'] ?? CheckCharacter::publicSri($presentation['fullSri']),
             'sriResolvingUrl' => $presentation['fullSri'] !== '' ? $this->getResolvingURL($contextId, $presentation['fullSri']) : '',
             'sriReason' => $presentation['reason'] !== '' ? __($presentation['reason'], $status['reasonParams'] ?? array()) : '',
             'sriUpdatedAt' => $status['updatedAt'] ?? '',
@@ -916,6 +942,73 @@ class SriPubIdPlugin extends PubIdPlugin
         ]);
 
         return $templateMgr->fetch($this->getTemplateResource('statusCard.tpl'));
+    }
+
+    /**
+     * Render an account status response without exposing the raw API payload.
+     */
+    private function renderAccountStatusBlock($request, $contextId, array $result)
+    {
+        $templateMgr = TemplateManager::getManager($request);
+        $assign = array(
+            'sriAccountStatusAvailable' => false,
+            'sriAccountStatusError' => __('plugins.pubIds.sri.manager.settings.status.unavailable'),
+            'sriAccountStatus' => 'UNKNOWN',
+            'sriPartnerStatus' => 'UNKNOWN',
+            'sriBlockedReason' => '',
+            'sriExpiresAt' => '',
+            'sriDaysRemaining' => null,
+            'sriSriQuota' => 0,
+            'sriSrisUsed' => 0,
+            'sriSriRemaining' => 0,
+            'sriPrefixQuotaAssigned' => 0,
+            'sriPrefixesUsed' => 0,
+            'sriPrefixRemaining' => 0,
+            'sriAutoApproveSris' => false,
+            'sriPrefixes' => array(),
+            'sriPrefixesTruncated' => false,
+            'sriConfiguredPrefix' => (string)$this->setting($contextId, 'sriPrefix', ''),
+            'sriConfiguredPrefixFound' => false,
+        );
+
+        if ($result['success'] ?? false) {
+            $membership = is_array($result['membership'] ?? null) ? $result['membership'] : array();
+            $quota = is_array($result['quota'] ?? null) ? $result['quota'] : array();
+            $prefixQuota = is_array($result['prefixQuota'] ?? null) ? $result['prefixQuota'] : array();
+            $prefixes = is_array($result['prefixes'] ?? null) ? $result['prefixes'] : array();
+            $configuredPrefix = (int)$this->setting($contextId, 'sriPrefix', 0);
+
+            $assign['sriAccountStatusAvailable'] = true;
+            $assign['sriAccountStatus'] = (string)($result['accountStatus'] ?? 'UNKNOWN');
+            $assign['sriPartnerStatus'] = (string)($result['partnerStatus'] ?? 'UNKNOWN');
+            $blockedReason = (string)($result['blockedReason'] ?? '');
+            if ($blockedReason !== '') {
+                $assign['sriBlockedReason'] = __(
+                    (new StatusResolver())->resolveError(0, $blockedReason)['key']
+                );
+            }
+            $assign['sriExpiresAt'] = (string)($membership['expiresAt'] ?? '');
+            $assign['sriDaysRemaining'] = $membership['daysRemaining'] ?? null;
+            $assign['sriSriQuota'] = (int)($quota['sriQuota'] ?? 0);
+            $assign['sriSrisUsed'] = (int)($quota['srisUsed'] ?? 0);
+            $assign['sriSriRemaining'] = (int)($quota['remaining'] ?? 0);
+            $assign['sriPrefixQuotaAssigned'] = (int)($prefixQuota['assigned'] ?? 0);
+            $assign['sriPrefixesUsed'] = (int)($prefixQuota['used'] ?? 0);
+            $assign['sriPrefixRemaining'] = (int)($prefixQuota['remaining'] ?? 0);
+            $assign['sriAutoApproveSris'] = ($result['autoApproveSris'] ?? false) === true;
+            $assign['sriPrefixes'] = $prefixes;
+            $assign['sriPrefixesTruncated'] = ($result['prefixesTruncated'] ?? false) === true;
+
+            foreach ($prefixes as $prefix) {
+                if (is_array($prefix) && (int)($prefix['prefix'] ?? 0) === $configuredPrefix) {
+                    $assign['sriConfiguredPrefixFound'] = true;
+                    break;
+                }
+            }
+        }
+
+        $templateMgr->assign($assign);
+        return $templateMgr->fetch($this->getTemplateResource('accountStatus.tpl'));
     }
 
     public function getSuffixValue($pubObject, $pubObjectType = 'Publication')
@@ -973,7 +1066,11 @@ class SriPubIdPlugin extends PubIdPlugin
     {
         $issueDao = DAORegistry::getDAO('IssueDAO');
         $options = [];
-        foreach (iterator_to_array($issueDao->getByContextId($contextId, false)) as $issue) {
+        $issuesResult = $issueDao->getByContextId($contextId, false);
+        $issues = is_object($issuesResult) && method_exists($issuesResult, 'toArray')
+            ? $issuesResult->toArray()
+            : (is_array($issuesResult) ? $issuesResult : iterator_to_array($issuesResult));
+        foreach ($issues as $issue) {
             $label = method_exists($issue, 'getIssueIdentification') ? $issue->getIssueIdentification() : '';
             if ($label === '') {
                 $label = trim(
@@ -1059,7 +1156,11 @@ class SriPubIdPlugin extends PubIdPlugin
     {
         $submissionDao = DAORegistry::getDAO('SubmissionDAO');
         $ids = [];
-        foreach (iterator_to_array($submissionDao->getByContextId($contextId)) as $submission) {
+        $submissionsResult = $submissionDao->getByContextId($contextId);
+        $submissions = is_object($submissionsResult) && method_exists($submissionsResult, 'toArray')
+            ? $submissionsResult->toArray()
+            : (is_array($submissionsResult) ? $submissionsResult : iterator_to_array($submissionsResult));
+        foreach ($submissions as $submission) {
             $publication = $submission->getCurrentPublication();
             if ($publication && (int)$publication->getData('issueId') === (int)$issueId) {
                 $ids[] = (int)$submission->getId();

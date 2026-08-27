@@ -28,7 +28,7 @@ if (!is_dir($dist) && !mkdir($dist, 0777, true) && !is_dir($dist)) {
     exit(1);
 }
 
-$version = '1.2.2';
+$version = '1.2.3';
 $builders = [
     '3.5' => 'plugin35',
     '3.4' => 'plugin34',

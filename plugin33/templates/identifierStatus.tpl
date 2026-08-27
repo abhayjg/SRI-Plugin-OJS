@@ -11,7 +11,14 @@
  *}
 
 {assign var=pubObjectType value=$pubIdPlugin->getPubObjectType($pubObject)}
-{assign var=enableObjectSri value=$pubIdPlugin->isObjectTypeEnabled($pubObjectType, $currentContext->getId())}
+{if $currentContext}
+	{assign var=sriContextId value=$currentContext->getId()}
+{elseif $currentJournal}
+	{assign var=sriContextId value=$currentJournal->getId()}
+{else}
+	{assign var=sriContextId value=null}
+{/if}
+{assign var=enableObjectSri value=$pubIdPlugin->isObjectTypeEnabled($pubObjectType, $sriContextId)}
 {if $enableObjectSri}
 	{fbvFormArea id="pubIdSriFormArea" class="border" title="plugins.pubIds.sri.displayName"}
 		{assign var=storedPubId value=$pubObject->getStoredPubId($pubIdPlugin->getPubIdType())}

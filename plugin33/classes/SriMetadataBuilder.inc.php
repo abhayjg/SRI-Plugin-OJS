@@ -36,7 +36,7 @@ class SriMetadataBuilder
             'Untitled'
         );
 
-        $article->creators = $this->mapAuthors($publication ? $publication->getAuthors() : []);
+        $article->creators = $this->mapAuthors($publication ? ($publication->getData('authors') ?? []) : []);
 
         $issue = null;
         if ($publication && $publication->getData('issueId')) {
@@ -46,7 +46,7 @@ class SriMetadataBuilder
 
         $article->publicationDate = $this->resolvePublicationDate($publication, $issue);
 
-        $request = Application::getRequest();
+        $request = Application::get()->getRequest();
         if ($request) {
             $dispatcher = $request->getDispatcher();
             $contextPath = $context ? $context->getPath() : null;
